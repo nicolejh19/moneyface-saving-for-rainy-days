@@ -9,13 +9,11 @@ dbhelper = DBHelper("NAME OF DATABASE")
 
 #Keyboard buttons
 main_menu_buttons = types.ReplyKeyboardMarkup(resize_keyboard=True)
-main_menu_buttons.add(types.KeyboardButton('My Savings'),
-                    types.KeyboardButton('My Spendings'), 
+main_menu_buttons.add(types.KeyboardButton('My Savings'), types.KeyboardButton('My Spendings'), 
                     types.KeyboardButton('Promotions'))
 
 my_s_button = types.ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
-my_s_button.add(types.KeyboardButton('Update'),
-                    types.KeyboardButton('My Records'))
+my_s_button.add(types.KeyboardButton('Update'),types.KeyboardButton('My Records'))
 
 update_spendings_button = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
 update_spendings_button.add(types.KeyboardButton('Monthly Budget'),
