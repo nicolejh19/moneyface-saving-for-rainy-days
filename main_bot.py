@@ -3,6 +3,9 @@ from telebot import types
 import json
 from databasehelper import DBHelper
 from datetime import datetime
+from threading import Thread
+from time import sleep
+from _datetime import date
 
 bot = telebot.TeleBot("TOKEN")
 dbhelper = DBHelper("NAME OF DATABASE")
@@ -376,6 +379,31 @@ def process_promotions(message):
         bot.register_next_step_handler(message, process_promotions)
     else:
         bot.send_message(chat_id=chat_id, text="Finished looking for good deals? Then start keying in your spendings to keep track of them at /main! 💸", reply_markup=types.ReplyKeyboardRemove())
-    
+
+def schedule_checker():
+    while True:
+        schedule.run_pending()
+        sleep(10)
+
+#monthly reminder + process monthly shit
+#library does not support monthly check so we do with dates
+def monthly():
+    if date.today().day == 1:
+        ##TO DO PIE CHART
+        ##BACKEND TO EXTRACT DATA
+        for i in list_of_users:
+            bot.send_message(chat_id= i, text="This is a scheduled message every month")    
+    else:
+        return
+
+#Daily reminder to user to key in daily spendings
+def send_daily():
+    list_of_users = dbhelper.get_all_users()
+    for i in list_of_users:
+        bot.send_message(chat_id= i, text="Reminder: Have you keyed in your expenditure (if any) for today? 🤔 \nTracking your expenses and savings consistently helps you manage your finances better!")
+
 while True:
-    bot.polling()
+    schedule.every().day.at("21:00").do(send_daily)
+    schedule.every().day.at("00:00").do(monthly)
+    Thread(target=schedule_checker).start()
+    bot.polling(none_stop=True)
