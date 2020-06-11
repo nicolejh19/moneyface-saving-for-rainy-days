@@ -72,9 +72,9 @@ class DBHelper:
         try: 
             dbcursor.execute(stmt, args)
             record = dbcursor.fetchone()
-            return "Your budget for this month is $" + str(Decimal(record[0]).quantize(Decimal('1.00')))
+            return str(Decimal(record[0]).quantize(Decimal('1.00')))
         except (sqlite3.Error, TypeError):
-            return "Monthly budget has not been set for this month. Please return to the spendings menu and use Update to set your budget for the month."
+            return "No budget set this month."
         finally:
             dbcursor.close()
     
@@ -246,7 +246,6 @@ class DBHelper:
             dbcursor.close()   
 
     def get_total_savings(self, user_id):
-        default_res = "No money saved so far. Start saving today! Go back to /main and record your savings for this month."
         db = sqlite3.connect(self.dbname)
         dbcursor = db.cursor()
         stmt = '''SELECT amount FROM monthly_savings WHERE user_id = ?'''
@@ -257,11 +256,35 @@ class DBHelper:
             sum = Decimal(0)
             for row in records:
                 sum += Decimal(row[0])
-            if sum != Decimal(0):
-                return "You have saved a total of $" + str(sum.quantize(Decimal('1.00'))) + " since you started using Saving for Rainy Days."
-            else:
-                return default_res
+            return str(sum.quantize(Decimal('1.00'))) 
         except (sqlite3.DatabaseError, TypeError):
-            return default_res
+            return "0.00"
         finally:
             dbcursor.close()
+    
+    def get_num_months_savings(self, user_id):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt1 = '''SELECT COUNT(DISTINCT year_month) FROM monthly_savings GROUP BY user_id HAVING user_id = ?'''
+        args = (user_id, )
+        try:
+            dbcursor.execute(stmt1, args)
+            record = dbcursor.fetchone()
+            if record is None:
+                return 0 
+            else:
+                return record[0]
+            except sqlite3.Error:
+                return 0
+            finally:
+                dbcursor.close()
+    
+    def get_average_monthly_savings(self, user_id):
+        total_savings = self.get_total_savings(user_id)
+        # print("total savings: " + str(total_savings))
+        num_months = self.get_num_months_savings(user_id)
+        # print("num_months: " + str(num_months))
+        if is_float(total_savings) and num_months != 0:
+            return (Decimal(total_savings) / num_months).quantize(Decimal('1.00'))
+        else:
+            return 0
