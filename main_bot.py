@@ -2,6 +2,8 @@ import telebot
 from telebot import types
 import json
 from databasehelper import DBHelper
+import schedule
+import time
 from datetime import datetime
 from threading import Thread
 from time import sleep
@@ -11,31 +13,48 @@ bot = telebot.TeleBot("TOKEN")
 dbhelper = DBHelper("NAME OF DATABASE")
 
 #Keyboard buttons
-main_menu_buttons = types.ReplyKeyboardMarkup(resize_keyboard=True)
-main_menu_buttons.add(types.KeyboardButton('My Savings'), types.KeyboardButton('My Spendings'), 
-                    types.KeyboardButton('Promotions'))
+main_menu_buttons = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+main_menu_buttons.add(types.KeyboardButton('Manage Savings'), types.KeyboardButton('Manage Spendings'), 
+                    types.KeyboardButton('Promotions'), types.KeyboardButton('Manage Debts'),
+                    types.KeyboardButton('$ocialite'), types.KeyboardButton('Help'))
 
 my_s_button = types.ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
 my_s_button.add(types.KeyboardButton('Update'),types.KeyboardButton('My Records'))
 
 update_spendings_button = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-update_spendings_button.add(types.KeyboardButton('Monthly Budget'),
-                types.KeyboardButton('Daily Expenditure'))
+update_spendings_button.add(types.KeyboardButton('Monthly Budget'),types.KeyboardButton('Daily Expenditure'))
 
 update_savings_button = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-update_savings_button.add(types.KeyboardButton('Monthly Savings'), 
-                        types.KeyboardButton('Bonus Savings'))
+update_savings_button.add(types.KeyboardButton('Monthly Savings'),types.KeyboardButton('Bonus Savings'))
 
 records_button = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-records_button.add(types.KeyboardButton('Current Month'),
-                types.KeyboardButton('History'))
+records_button.add(types.KeyboardButton('Current Month'), types.KeyboardButton('History'))
 
 promotions_button = types.ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
-promotions_button.add(types.KeyboardButton('Food'), 
-                types.KeyboardButton('Clothes'),
-                types.KeyboardButton('Transport'),
-                types.KeyboardButton('Daily Necessities'),
+promotions_button.add(types.KeyboardButton('Food'), types.KeyboardButton('Clothes'),
+                types.KeyboardButton('Transport'),types.KeyboardButton('Daily Necessities'),
                 types.KeyboardButton('Others'))
+
+promo_button = types.ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
+promo_button.add(types.KeyboardButton('Food'), types.KeyboardButton('Fashion'),
+                types.KeyboardButton('Transport'), types.KeyboardButton('Daily Necessities'),
+                types.KeyboardButton('Entertainment'), types.KeyboardButton('Student Deals'))
+
+debt_button = types.ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
+debt_button.add(types.KeyboardButton('IOU'), types.KeyboardButton('UOMe'))
+
+iou_button = types.ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
+iou_button.add(types.KeyboardButton('Show Debtees'), types.KeyboardButton('Update Debtees'))
+
+uome_button = types.ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
+uome_button.add(types.KeyboardButton('Show Debtors'), types.KeyboardButton('Update Debtors'))
+
+debtee_button = types.ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
+debtee_button.add(types.KeyboardButton('Add Debtee'), types.KeyboardButton('Delete Debtee'))
+
+debtor_button = types.ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
+debtor_button.add(types.KeyboardButton('Add Debtor'), types.KeyboardButton('Delete Debtor'))
+
 
 def is_float(amt):
     try:
@@ -386,6 +405,137 @@ def process_promotions(message):
         bot.register_next_step_handler(message, process_promotions)
     else:
         bot.send_message(chat_id=chat_id, text="Finished looking for good deals? Then start keying in your spendings to keep track of them at /main! 💸", reply_markup=types.ReplyKeyboardRemove())
+
+def process_debts(message):
+    chat_id = message.from_user.id
+    msg = message.text
+    if msg == 'IOU':
+        body = "To review your list of debtees, select *Show Debtees*. If you want to add or delete debtee from the list, select *Update Debtees*. 💸"
+        bot.send_message(chat_id=chat_id, text= body, reply_markup=iou_button,parse_mode= "Markdown")
+        bot.register_next_step_handler(message, process_iou)
+    elif msg == 'UOMe':
+        body = "To review your list of debtors, select *Show Debtors*. If you want to add or delete debtor from the list, select *Update Debtors*. 💸"
+        bot.send_message(chat_id, text=body, reply_markup=uome_button, parse_mode= "Markdown")
+        bot.register_next_step_handler(message, process_uome)
+    else:
+        bot.send_message(chat_id=chat_id,text="Don't have any debts to deal with? Explore other features at /main!", reply_markup=types.ReplyKeyboardRemove())
+
+def process_iou(message):
+    chat_id = message.from_user.id
+    msg = message.text
+    if msg == 'Show Debtees':
+        ##SEND THE LIST OF DEBTEES TO USER THAT'S ALL
+        #BACKEND PLEASE
+        body = "Yo to do"
+    elif msg == 'Update Debtees':
+        bot.send_message(chat_id=chat_id, text="Do you want to add or delete debtees?",reply_markup=debtee_button)
+        bot.register_next_step_handler(message, update_debtee)
+    else:
+        bot.send_message(chat_id=chat_id, text="No debtees to deal with? That's great! Continue to save at /main.",reply_markup=types.ReplyKeyboardRemove())
+
+def process_uome(message):
+    chat_id = message.from_user.id
+    msg = message.text
+    if msg == 'Show Debtors':
+        ##SEND THE LIST OF DEBTORS TO USER THAT'S ALL
+        #BACKEND PLEASE
+        body = "Yo to do"
+    elif msg == 'Update Debtors':
+        bot.send_message(chat_id=chat_id, text="Do you want to add or delete debtors?",reply_markup=debtor_button)
+        bot.register_next_step_handler(message, update_debtor)
+    else:
+        bot.send_message(chat_id=chat_id, text="No debtors to deal with? That's great too! Continue to save at /main.",reply_markup=types.ReplyKeyboardRemove())
+
+def update_debtee(message):
+    chat_id = message.from_user.id
+    msg = message.text
+    if msg == 'Add Debtee':
+        body = "To add a debtee, please input in the following format: “[name of debtee],[amount you owed]“.\nE.g. If you owed Tan Ah Long $50, then key in Tan Ah Long,50. Do check before keying in and do not leave any spacing.🙂"
+        bot.send_message(chat_id=chat_id, text=body, reply_markup= types.ReplyKeyboardRemove())
+        bot.register_next_step_handler(message, add_debtee)
+    elif msg == 'Delete Debtee':
+        body = "Congratulations on paying back what you’ve owed!🥳 To delete a debtee, simply input the name of the debtee that is in your debtee list. \nE.g. If you have cleared your debts with Tan Ah Long, then simply key in Tan Ah Long."
+        bot.send_message(chat_id=chat_id, text= body, reply_markup=types.ReplyKeyboardRemove())
+        bot.register_next_step_handler(message, delete_debtee)
+    else:
+        bot.send_message(chat_id=chat_id, text="No debtees to update? Faster pay back if you got any debtees okay! Visit /main to help you save more.", reply_markup=types.ReplyKeyboardRemove())
+
+def add_debtee(message):
+    chat_id = message.from_user.id
+    msg = message.text
+    if msg.lower() == 'exit':
+        bot.send_message(chat_id=chat_id, text="Press /main to explore other features at main menu.")
+    else: 
+        arr = msg.split(",")
+        try:
+            #arr[0] is name of debtee, arr[1] is amount owed
+            #add in database 
+            # TODO process
+            body = "You owed " + arr[0] + " $" + arr[1] + " and it has been added to your debtee list. Remember to faster pay back okay! Go to /main to see if you got any savings to help you pay."
+            bot.send_message(chat_id=chat_id, text=body)
+        except IndexError:
+            bot.send_message(chat_id=chat_id, text="Please follow the format for input.🙂 If you don't want to add debtee, input 'exit'.")
+            bot.register_next_step_handler(message, add_debtee)
+
+def delete_debtee(message):
+    chat_id = message.from_user.id
+    msg = message.text
+    if msg.lower() == 'exit':
+        bot.send_message(chat_id=chat_id, text="Press /main to explore other features at main menu.")
+    else: 
+        if nameisindatabase:
+            #TODO delete from database
+            bot.send_message(chat_id=chat_id,text="You have removed " + msg + " from your debtee list. Good job! Meanwhile, explore other features at /main!")
+        else:
+            body = "The name you've keyed in is not in our database. Please check if you have keyed in the name of your debtee correctly or check if the person is in your debtee list and input again. If you have no debtee to delete, then input 'exit'."
+            bot.send_message(chat_id=chat_id,text=body)
+            bot.register_next_step_handler(message, delete_debtee)
+
+def update_debtor(message):
+    chat_id = message.from_user.id
+    msg = message.text
+    if msg == 'Add Debtor':
+        body = "To add a debtor, please input in the following format: “[name of debtor],[amount they owed you]“.\nE.g. If you lent Tan Ah Beng $50, then key in Tan Ah Beng,50. Do check before keying in and do not leave any spacing.🙂"
+        bot.send_message(chat_id=chat_id, text=body, reply_markup=types.ReplyKeyboardRemove())
+        bot.register_next_step_handler(message, add_debtor)
+    elif msg == 'Delete Debtor':
+        body = "Congratulations on receiving back your money!🥳 To delete a debtor, simply input the name of the debtor that is in your debtor list. \nE.g. If Tan Ah Beng paid you back, then simply key in Tan Ah Beng."
+        bot.send_message(chat_id=chat_id, text=body, reply_markup=types.ReplyKeyboardRemove())
+        bot.register_next_step_handler(message, delete_debtor)
+    else:
+        bot.send_message(chat_id=chat_id, text="No debtors to update? If you still got any debtors, can use our $ocialite feature to remind them to pay back okay! Visit /main to explore.", reply_markup=types.ReplyKeyboardRemove())
+
+def add_debtor(message):
+    chat_id = message.from_user.id
+    msg = message.text
+    if msg.lower() == 'exit':
+        bot.send_message(chat_id=chat_id, text="Press /main to explore other features at main menu.")
+    else: 
+        arr = msg.split(",")
+        try:
+            #arr[0] is name of debtor, arr[1] is amount owed
+            #add in database 
+            # TODO process
+            body = "You lent " + arr[0] + " $" + arr[1] + " and it has been added to your debtor list. If you shy ah, can use our $ocialite feature to remind them to pay back okay! Go to /main to check out."
+            bot.send_message(chat_id=chat_id, text=body)
+        except IndexError:
+            bot.send_message(chat_id=chat_id, text="Please follow the format for input.🙂 If you don't want to add debtor, input 'exit'.")
+            bot.register_next_step_handler(message, add_debtor)
+
+def delete_debtor(message):
+    chat_id = message.from_user.id
+    msg = message.text
+    if msg.lower() == 'exit':
+        bot.send_message(chat_id=chat_id, text="Press /main to explore other features at main menu.")
+    else: 
+        if nameisindatabase:
+            #TODO delete from database
+            bot.send_message(chat_id=chat_id,text="You have removed " + msg + " from your debtor list. Good job! Meanwhile, explore other features at /main!")
+        else:
+            body = "The name you've keyed in is not in our database. Please check if you have keyed in the name of your debtor correctly or check if the person is in your debtor list and input again. If you have no debtor to delete, then input 'exit'."
+            bot.send_message(chat_id=chat_id,text=body)
+            bot.register_next_step_handler(message, delete_debtor)
+
 
 def schedule_checker():
     while True:
