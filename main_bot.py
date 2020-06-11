@@ -315,10 +315,19 @@ def process_others(message):
         bot.send_message(chat_id=chat_id, text="Input your budget for 'others' properly leh 🤨")
         bot.register_next_step_handler(message, process_others)
 
+def convert_str(amt):
+    try:
+        res = float(amt)
+        return res                    
+    except ValueError as e:
+        return int(amt)
+
 #Process 'Records' button
 def process_records(message):
     chat_id = message.from_user.id
     msg = message.text
+    curr_exp = dbhelper.get_monthly_exp(chat_id, year_month)
+    curr_budget = dbhelper.get_monthly_budget(year_month, chat_id)
     if msg == 'Current Month':
         unix_date = int(message.date)
         dt = datetime.utcfromtimestamp(unix_date)
@@ -330,8 +339,6 @@ def process_records(message):
         curr_transport_exp = dbhelper.get_monthly_category_exp(chat_id, year_month, 'TRANSPORT')
         curr_necc_exp = dbhelper.get_monthly_category_exp(chat_id, year_month, 'NECESSITIES')
         curr_others_exp = dbhelper.get_monthly_category_exp(chat_id, year_month, 'OTHERS')
-        curr_exp = dbhelper.get_monthly_exp(chat_id, year_month)
-        curr_budget = dbhelper.get_monthly_budget(year_month, chat_id)
         if curr_exp.isnumeric() or is_float(curr_exp): 
             bot.send_message(chat_id=chat_id, text="You have spent $" + curr_exp +  " so far in this month\n" + curr_budget + "\nGo back to /main to check out good promotions okay! Don't say I never say ah!", reply_markup=types.ReplyKeyboardRemove())
         else:
@@ -342,7 +349,7 @@ def process_records(message):
         year_month = str(dt.year) + str(dt.month)
         average_monthly_exp = dbhelper.get_average_monthly_exp(chat_id)
         percentage_of_months_within_budget = dbhelper.get_percentage_within_budget(chat_id)
-        if not average_monthly_exp.isnumeric() or is_float(average_monthly_exp):
+        if not average_monthly_exp.isnumeric() or not is_float(average_monthly_exp):
             bot.send_message(chat_id=chat_id, text="History of your spendings not available. Keep on tracking and you will see it next month!", reply_markup=types.ReplyKeyboardRemove())
         else:
             bot.send_message(chat_id=chat_id, text="Your average monthly expenditure is $" + average_monthly_exp + + " since you started using Saving for Rainy Days. You have kept within budget " + percentage_of_months_within_budget + "% of the time" + "\nPress /main to continue your tracking!", reply_markup=types.ReplyKeyboardRemove())
@@ -389,10 +396,57 @@ def schedule_checker():
 #library does not support monthly check so we do with dates
 def monthly():
     if date.today().day == 1:
-        ##TO DO PIE CHART
-        ##BACKEND TO EXTRACT DATA
+        list_of_users = dbhelper.get_all_users()
+        year_month = str(date.today().year) + str(date.today().month - 1)     
         for i in list_of_users:
-            bot.send_message(chat_id= i, text="This is a scheduled message every month")    
+            past_month_exp = dbhelper.get_monthly_exp(i, year_month)
+            past_month_savings = dbhelper.get_current_savings(year_month, i)  
+            past_month_budget = dbhelper.get_monthly_budget(year_month, i)
+            average_savings = dbhelper.get_average_monthly_savings(i)
+            if is_float(past_month_savings):
+                savings_msg = "$" + past_month_savings
+            else:
+                savings_msg = "No records of savings last month"
+            if average_savings != 0:
+                ave_savings_msg = "$" + str(average_savings)
+            else:
+                ave_savings_msg = "No history of savings available"
+            if is_float(past_month_budget):
+                budget_msg = "$" + past_month_budget
+            else:
+                budget_msg = "No budget set last month"
+            if is_float(past_month_exp): ### GOT PAST MONTH EXPENDITURE ###
+                exp_msg = "$" + past_month_exp + "\n"
+                if is_float(past_month_budget):
+                    if Decimal(past_month_exp) <= Decimal(past_month_budget):
+                        succ_or_fail_msg = "🥳 Congrats! You successfully kept within budget last month!"
+                    else:
+                        succ_or_fail_msg = "😔 You did not manage to spend within budget last month. Try harder this month! 💪🏻"
+                flag = dbhelper.add_monthly_exp(i, year_month)
+                average_exp = dbhelper.get_average_monthly_exp(i)
+                ave_exp_msg = "$" + average_exp
+                total_spending = float(past_month_exp)
+                curr_food_exp = float(dbhelper.get_monthly_category_exp(i, year_month, 'FOOD'))
+                curr_clothes_exp = float(dbhelper.get_monthly_category_exp(i, year_month, 'CLOTHES'))
+                curr_transport_exp = float(dbhelper.get_monthly_category_exp(i, year_month, 'TRANSPORT'))
+                curr_necc_exp = float(dbhelper.get_monthly_category_exp(i, year_month, 'NECESSITIES'))
+                curr_others_exp = float(dbhelper.get_monthly_category_exp(i, year_month, 'OTHERS'))
+                food = (curr_food_exp/total_spending) * 100
+                clothes = (curr_clothes_exp/ total_spending) * 100
+                transport = (curr_transport_exp/ total_spending) * 100
+                necc = (curr_necc_exp/ total_spending) * 100
+                others = (curr_others_exp / total_spending) * 100ast_month_exp = dbhelper.get_monthly_exp(i, year_month)
+                ### TO DO ###
+                ### PIE CHART ###
+                default_msg = "It is a new month!🤗 Start planning for your monthly savings and budget. Here's a summary of your savings and spendings last month:\n🗓 Monthly savings: " + savings_msg + "\n🗓 Average monthly savings: " + ave_savings_msg + "\n🗓 Monthly budget: " + budget_msg + "\n🗓 Monthly expenditure: " + exp_msg + succ_or_fail_msg + "\n🗓 Average monthly expenditure: " + ave_exp_msg 
+                bot.send_message(chat_id=i, text=default_msg)
+            else:
+                exp_msg = "No records of expenditure last month"
+                succ_or_fail_msg = ""
+                cat_msg = ""
+                if not is_float(average_exp):
+                    ave_exp_msg = "No history of expenditure available"
+                    bot.send_message(chat_id=i, text=default_msg)
     else:
         return
 
