@@ -31,7 +31,8 @@ class DBHelper:
             db.commit()
         except sqlite3.IntegrityError:
             pass
-        dbcursor.close()
+        finally:
+            dbcursor.close()
 
     def get_all_users(self):
         db = sqlite3.connect(self.dbname)
@@ -74,7 +75,8 @@ class DBHelper:
             return "Your budget for this month is $" + str(Decimal(record[0]).quantize(Decimal('1.00')))
         except (sqlite3.Error, TypeError):
             return "Monthly budget has not been set for this month. Please return to the spendings menu and use Update to set your budget for the month."
-        dbcursor.close()
+        finally:
+            dbcursor.close()
     
     def add_daily_exp(self, date_time, category, amount, user_id, year_month):
         db = sqlite3.connect(self.dbname)
@@ -119,7 +121,7 @@ class DBHelper:
                 sum += Decimal(row[0])
             return str(sum.quantize(Decimal('1.00')))
         except (sqlite3.DatabaseError, TypeError):
-            return "No money spent on " + category + "this month."
+            return "0"
         finally:
             dbcursor.close()
 
@@ -128,7 +130,7 @@ class DBHelper:
         dbcursor = db.cursor()
         stmt = '''INSERT INTO monthly_exp (year_month, amount, user_id, within_budget) VALUES (?, ?, ?, ?)'''
         amount = self.get_monthly_exp(user_id, year_month)
-        if not amount.isnumeric() or not is_float(amount):
+        if not is_float(amount):
             return False
         budget = self.get_monthly_budget(year_month, user_id)
         within_budget = 0
@@ -219,7 +221,8 @@ class DBHelper:
                 return True
         except (sqlite3.Error):
             return False
-        dbcursor.close()   
+        finally:
+            dbcursor.close()   
 
     def get_current_savings(self, year_month, user_id):
         default_res = "Monthly savings has not been keyed in for this month. God of Fortune advise you to go back to /main and record your savings for this month."
@@ -239,7 +242,8 @@ class DBHelper:
                 return default_res
         except (sqlite3.Error, TypeError):
             return default_res
-        dbcursor.close()   
+        finally:
+            dbcursor.close()   
 
     def get_total_savings(self, user_id):
         default_res = "No money saved so far. Start saving today! Go back to /main and record your savings for this month."
