@@ -1,18 +1,18 @@
 import telebot
 from telebot import types
-import json
 from databasehelper import DBHelper
+from datetime import datetime
 import schedule
 import time
-from datetime import datetime
 from threading import Thread
 from time import sleep
 from _datetime import date
+import logging
 
 bot = telebot.TeleBot("TOKEN")
 dbhelper = DBHelper("NAME OF DATABASE")
 
-#Keyboard buttons
+###################### BUTTONS ############################
 main_menu_buttons = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
 main_menu_buttons.add(types.KeyboardButton('Manage Savings'), types.KeyboardButton('Manage Spendings'), 
                     types.KeyboardButton('Promotions'), types.KeyboardButton('Manage Debts'),
@@ -71,7 +71,6 @@ def start(message):
     start_text= start_text= "Welcome " + username + " to Saving for Rainy Days! 😄\nWe will guide you through rainy days and bring you luck to see the god of fortune.💰\n\nOur main features include: \n1) Tracking your monthly savings and daily savings (if any) \n2) Tracking your monthly expenditure and daily spendings \n3) Updating you with the latest promotions and good deals to boost your savings\n\nTo begin your path to be in control of your wealth, type /main and we will guide you to your fortunes!\nGood luck!\nWell wishes from Team MoneyFace🤑 "
     bot.send_message(chat_id=chat_id, text= start_text, reply_markup=types.ReplyKeyboardRemove())
 
-#Prompts main menu buttons: 'My Spendings', 'Promotions', 'My Savings'
 @bot.message_handler(commands=['main'])
 def main(message):
     chat_id = message.from_user.id
@@ -81,26 +80,29 @@ def main(message):
     bot.send_message(chat_id=chat_id, text=main_text,reply_markup=main_menu_buttons,parse_mode="Markdown")
     bot.register_next_step_handler(message, process_next_step)
 
-#Handles the main menu buttons: 'My Spendings', 'Promotions', 'My Savings'
 def process_next_step(message):
     chat_id = message.from_user.id
     msg = message.text
     bot.send_chat_action(chat_id=chat_id, action="Typing")
-    if msg == 'My Savings':
-        body = "You have selected *My Savings*. 💰 \n\nTo input your monthly savings or bonus money received, select *Update*.💵\n\nTo track your current month savings and savings history, select *My Records*.🏦"
+    if msg == 'Manage Savings':
+        body = "You have selected *Manage Savings*. 💰 \nTo input your monthly savings or bonus money received, select *Update*.💵 To track your current month savings and savings history, select *My Records*.🏦"
         bot.send_message(chat_id=chat_id, text= body,reply_markup= my_s_button,parse_mode="Markdown")
         bot.register_next_step_handler(message, process_my_savings)
-    elif msg == 'My Spendings':
-        body = "You have selected *My Spendings*. 💸\n\nSelect *Update* to input your monthly budget or daily expenditure.💵\n\nSelect *My Records* to track your current month expenditure and spending history. 🏦"
+    elif msg == 'Manage Spendings':
+        body = "You have selected *Manage Spendings*. 💸\nSelect *Update* to input your monthly budget or daily expenditure.💵 Select *My Records* to track your current month expenditure and spending history. 🏦"
         bot.send_message(chat_id=chat_id, text= body,reply_markup= my_s_button, parse_mode="Markdown")
         bot.register_next_step_handler(message, process_my_spendings)
     elif msg == 'Promotions':
-        bot.send_message(chat_id=chat_id, text= "Choose which category you want to get good deals from! 🤗", reply_markup=promotions_button)
+        body = "You have selected *Promotions*. 🛒\nWe have curated the best resources for promotions for your easy access!😆\n(Even better: you don't have to subscribe and get spammed) Choose which category you want to get good deals from to become a saving guru now! 🤗"
+        bot.send_message(chat_id=chat_id, text=body, reply_markup=promo_button, parse_mode="Markdown")
         bot.register_next_step_handler(message, process_promotions)
+    elif msg == 'Manage Debts':
+        body = "You have selected “Manage Debts”.🧾\nSelect *IOU* to update/review debtees and the amount YOU owe. Select *UOMe* to update/review your debtors and the amount THEY owe you. 💶"
+        bot.send_message(chat_id=chat_id, text=body, reply_markup=debt_button, parse_mode="Markdown")
+        bot.register_next_step_handler(message, process_debts)
     else: 
         bot.send_message(chat_id, text= "Oh dear, you just destroyed my train of thoughts.😩 Type '/main' for me to restart.", reply_markup= types.ReplyKeyboardRemove())
 
-#Handles 'My Savings' buttons: 'Update' and 'My Records'
 def process_my_savings(message):
     chat_id = message.from_user.id
     bot.send_chat_action(chat_id=chat_id, action="Typing")
@@ -115,7 +117,6 @@ def process_my_savings(message):
     else:
         bot.send_message(chat_id=chat_id, text="Oh dear, you just destroyed my train of thoughts.😩 Type '/main' for me to restart. ",reply_markup=types.ReplyKeyboardRemove())
 
-#Handles 'Update' button in 'My Savings'
 def process_update_savings(message):
     chat_id = message.from_user.id
     bot.send_chat_action(chat_id=chat_id, action="Typing")
@@ -181,7 +182,6 @@ def process_savings_records(message):
     else:
         bot.send_message(chat_id=chat_id, text="My brain is not so good. Now I forgot what you want to do. Go back to /main leh :C", reply_markup=types.ReplyKeyboardRemove())
 
-#Process 'My Spendings' button: buttons include 'Update', 'My Records' and 'Back'
 def process_my_spendings(message):
     chat_id = message.from_user.id
     bot.send_chat_action(chat_id=chat_id, action="Typing")
@@ -197,7 +197,6 @@ def process_my_spendings(message):
     else:
         bot.send_message(chat_id=chat_id, text="Aigoo, I cannot comprehend what you want me to do. 😪 Just go back to /main please.", reply_markup=types.ReplyKeyboardRemove())   
     
-#Process 'Update' button: buttons include 'Monthly Budget', 'Daily Expenditure' and 'Back'
 def process_update(message):
     chat_id = message.from_user.id
     msg = message.text
@@ -212,7 +211,6 @@ def process_update(message):
     else:
         bot.send_message(chat_id=chat_id, text= "Why you anyhow type ah? 😑 Go back to /main to look for promotions lah!", reply_markup=types.ReplyKeyboardRemove())
 
-#Process 'Monthly Budget' button
 def process_monthly_budget(message):
     chat_id = message.from_user.id
     msg = message.text
@@ -231,7 +229,6 @@ def process_monthly_budget(message):
         bot.send_message(chat_id=chat_id, text="Alamak, testing me hor. Input your budget properly lah. 🙄 If you prepared $200.50 to spend, just key in 200.5 😌")
         bot.register_next_step_handler(message, process_monthly_budget)
 
-#Process 'Daily Expenditure' button
 def process_daily_expenditure(message):
     chat_id = message.from_user.id
     bot.send_chat_action(chat_id=chat_id, action="Typing")
@@ -254,7 +251,6 @@ def process_daily_expenditure(message):
     else:
         bot.send_message(chat_id=chat_id, text= "Finished your input for daily expenditure? 😀 Go back to /main to look for promotions lah!", reply_markup=types.ReplyKeyboardRemove())
 
-#Process food button
 def process_food(message):
     chat_id = message.from_user.id
     bot.send_chat_action(chat_id=chat_id, action="Typing")
@@ -270,7 +266,6 @@ def process_food(message):
         bot.send_message(chat_id=chat_id, text="Input your budget for food properly leh 🤨")
         bot.register_next_step_handler(message, process_food)
 
-#Process clothes button
 def process_clothes(message):
     chat_id = message.from_user.id
     bot.send_chat_action(chat_id=chat_id, action="Typing")
@@ -286,7 +281,6 @@ def process_clothes(message):
         bot.send_message(chat_id=chat_id, text="Input your budget for clothes properly leh 🤨")
         bot.register_next_step_handler(message, process_clothes)
 
-#Process transport button
 def process_transport(message):
     chat_id = message.from_user.id
     bot.send_chat_action(chat_id=chat_id, action="Typing")
@@ -302,7 +296,6 @@ def process_transport(message):
         bot.send_message(chat_id=chat_id, text="Input your budget for transport properly leh 🤨")
         bot.register_next_step_handler(message, process_transport)
 
-#Process necessities button
 def process_necessities(message):
     chat_id = message.from_user.id
     bot.send_chat_action(chat_id=chat_id, action="Typing")
@@ -318,7 +311,6 @@ def process_necessities(message):
         bot.send_message(chat_id=chat_id, text="Input your budget for daily necessities properly leh 🤨")
         bot.register_next_step_handler(message, process_necessities)
 
-#Process others button
 def process_others(message):
     chat_id = message.from_user.id
     bot.send_chat_action(chat_id=chat_id, action="Typing")
@@ -341,7 +333,6 @@ def convert_str(amt):
     except ValueError as e:
         return int(amt)
 
-#Process 'Records' button
 def process_records(message):
     chat_id = message.from_user.id
     msg = message.text
@@ -375,7 +366,6 @@ def process_records(message):
     else:
         bot.send_message(chat_id=chat_id, text="Oopsies...Press /main to resurrect me", reply_markup=types.ReplyKeyboardRemove())
 
-#Process 'Promotions' button: buttons include 'Food', 'Clothes', 'Transport', 'Daily Necessities', 'Others' and 'Back'
 def process_promotions(message):
     chat_id = message.from_user.id
     bot.send_chat_action(chat_id=chat_id, action="Typing")
@@ -607,7 +597,12 @@ def send_daily():
         bot.send_message(chat_id= i, text="Reminder: Have you keyed in your expenditure (if any) for today? 🤔 \nTracking your expenses and savings consistently helps you manage your finances better!")
 
 while True:
-    schedule.every().day.at("21:00").do(send_daily)
+    schedule.every().day.at("16:04").do(send_daily) 
     schedule.every().day.at("00:00").do(monthly)
     Thread(target=schedule_checker).start()
-    bot.polling(none_stop=True)
+    try:
+        bot.polling(none_stop=True)
+    except Exception as err:
+        logging.error(err)
+        time.sleep(5)
+        print("Internet error!")
