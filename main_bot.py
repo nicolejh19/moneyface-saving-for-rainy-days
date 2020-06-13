@@ -370,29 +370,28 @@ def process_promotions(message):
     chat_id = message.from_user.id
     bot.send_chat_action(chat_id=chat_id, action="Typing")
     msg = message.text
+    bot.clear_step_handler(message)
     if msg == 'Food':
-        #direct to food channel
-        #TO-DO
-        bot.send_message(chat_id=chat_id, text= "Eat cheaply! t.me/kiasufoodies")
+        bot.send_message(chat_id=chat_id, text= "☕️Look for cheap and good deals to satisfy your taste buds at SG Kiasu Foodies!🍜 \nDon't view it when you are on a diet though! 😜 \nt.me/kiasufoodies")
         bot.register_next_step_handler(message, process_promotions)
-    elif msg == 'Clothes':
-        #direct to clothes channel
-        #TO-DO
-        bot.send_message(chat_id=chat_id, text= "Buy cheap and nice clothes!")
+    elif msg == 'Fashion':
+        bot.send_message(chat_id=chat_id, text= "Bringing you the latest fashion promotions by SG Budget Babes! 👟\nGuys, don't be fooled by the name 👔, who says you ain't a babe? 😉\nBe a fashionista and a saving guru at the same time! 🕶\nt.me/budgetbabes")
         bot.register_next_step_handler(message, process_promotions)
     elif msg == 'Transport':
-        #direct to transport channel
-        #TO-DO
-         bot.send_message(chat_id=chat_id, text= "Travel cheaply!")
+         bot.send_message(chat_id=chat_id, text= "Travel cheaply with SG Cab Promos! 🚖\nDon't be fooled by it's name though, it provides promotions for other ride-hailing services aside from taxis! 🚘 \nt.me/sgcabcodes")
          bot.register_next_step_handler(message, process_promotions)
     elif msg == 'Daily Necessities':
-        #direct to transport channel
-        #TO-DO
-         bot.send_message(chat_id=chat_id, text= "Sheng Shiong cheaper than NTUC hor!")
+         bot.send_message(chat_id=chat_id, text= "Check out some good deals that you need in your daily life at SG Daily Deals & Lifestyle Hacks.💰\nHack your way through to becoming a saving guru! 💪\nt.me/SBsmarterway")
          bot.register_next_step_handler(message, process_promotions)
-    elif msg == 'Others':
-        bot.send_message(chat_id=chat_id, text= "Other stuff")
+    elif msg == 'Entertainment':
+        bot.send_message(chat_id=chat_id, text= "Not sure how to have fun without spending too much? 🎮 Check out SG Weekend Plans that suggest some events for you to engage in for FREE! 👩‍💻\nt.me/sgweekend")
         bot.register_next_step_handler(message, process_promotions)
+    elif msg == 'Student Deals':
+        bot.send_message(chat_id=chat_id, text= "A special category for YOU students 👨‍🎓 who especially need to save for your future!\nEnjoy the perks of being a student with these promotions specially for you at SG Student Promos! 👩🏽‍🎓\nt.me/sgstudentpromos")
+        bot.register_next_step_handler(message, process_promotions)
+    elif msg == 'Back':
+        bot.send_message(chat_id=chat_id, text= "Sending you back...", reply_markup=main_menu_buttons)
+        bot.register_next_step_handler(message, process_next_step)
     else:
         bot.send_message(chat_id=chat_id, text="Finished looking for good deals? Then start keying in your spendings to keep track of them at /main! 💸", reply_markup=types.ReplyKeyboardRemove())
 
