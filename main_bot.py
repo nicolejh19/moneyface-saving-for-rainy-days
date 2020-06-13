@@ -413,9 +413,15 @@ def process_iou(message):
     chat_id = message.from_user.id
     msg = message.text
     if msg == 'Show Debtees':
-        ##SEND THE LIST OF DEBTEES TO USER THAT'S ALL
-        #BACKEND PLEASE
-        body = "Yo to do"
+        all_debtees = dbhelper.get_all_debtees(chat_id)
+        if not all_debtees:
+            bot.send_message(chat_id=chat_id, text="Good! You don't owe anyone money. Continue to save at /main.",reply_markup=types.ReplyKeyboardRemove())
+        else:
+            res = "Here is a list of people you owe:\n"
+            for i in all_debtees:
+                res += i[0] + ": $" + i[1] + "\n"
+            res += "Hurry save save save and buy only discounted items so that you can pay them back asap! Find Promotions at /main."
+            bot.send_message(chat_id=chat_id, text=res,reply_markup=types.ReplyKeyboardRemove())
     elif msg == 'Update Debtees':
         bot.send_message(chat_id=chat_id, text="Do you want to add or delete debtees?",reply_markup=debtee_button)
         bot.register_next_step_handler(message, update_debtee)
@@ -457,9 +463,8 @@ def add_debtee(message):
     else: 
         arr = msg.split(",")
         try:
-            #arr[0] is name of debtee, arr[1] is amount owed
-            #add in database 
-            # TODO process
+            name_debtee, amt = arr[0], arr[1]
+            dbhelper.add_debtee_iou(chat_id, name_debtee.upper(), amt)
             body = "You owed " + arr[0] + " $" + arr[1] + " and it has been added to your debtee list. Remember to faster pay back okay! Go to /main to see if you got any savings to help you pay."
             bot.send_message(chat_id=chat_id, text=body)
         except IndexError:
@@ -472,8 +477,8 @@ def delete_debtee(message):
     if msg.lower() == 'exit':
         bot.send_message(chat_id=chat_id, text="Press /main to explore other features at main menu.")
     else: 
-        if nameisindatabase:
-            #TODO delete from database
+        if dbhelper.is_debtee_present_iou(chat_id, msg.upper()):
+            dbhelper.delete_debtee_iou(chat_id, msg.upper())
             bot.send_message(chat_id=chat_id,text="You have removed " + msg + " from your debtee list. Good job! Meanwhile, explore other features at /main!")
         else:
             body = "The name you've keyed in is not in our database. Please check if you have keyed in the name of your debtee correctly or check if the person is in your debtee list and input again. If you have no debtee to delete, then input 'exit'."
