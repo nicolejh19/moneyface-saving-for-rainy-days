@@ -432,9 +432,15 @@ def process_uome(message):
     chat_id = message.from_user.id
     msg = message.text
     if msg == 'Show Debtors':
-        ##SEND THE LIST OF DEBTORS TO USER THAT'S ALL
-        #BACKEND PLEASE
-        body = "Yo to do"
+        all_debtors = dbhelper.get_all_debtors(chat_id)
+        if not all_debtors:
+            bot.send_message(chat_id=chat_id, text="Good! No one owes you money. Continue to save at /main.",reply_markup=types.ReplyKeyboardRemove())
+        else:
+            res = "Here is a list of people who owe you:\n"
+            for i in all_debtors:
+                res += i[0] + ": $" + i[1] + "\n"
+            res += "Hurry chase for your money back! The longer you wait the more they will forget. Use $socialise at /main to remind your friends if you shy."
+        bot.send_message(chat_id=chat_id, text=res,reply_markup=types.ReplyKeyboardRemove())
     elif msg == 'Update Debtors':
         bot.send_message(chat_id=chat_id, text="Do you want to add or delete debtors?",reply_markup=debtor_button)
         bot.register_next_step_handler(message, update_debtor)
@@ -465,7 +471,7 @@ def add_debtee(message):
         try:
             name_debtee, amt = arr[0], arr[1]
             dbhelper.add_debtee_iou(chat_id, name_debtee.upper(), amt)
-            body = "You owed " + arr[0] + " $" + arr[1] + " and it has been added to your debtee list. Remember to faster pay back okay! Go to /main to see if you got any savings to help you pay."
+            body = "You owed " + name_debtee + " $" + amt + " and it has been added to your debtee list. Remember to faster pay back okay! Go to /main to see if you got any savings to help you pay."
             bot.send_message(chat_id=chat_id, text=body)
         except IndexError:
             bot.send_message(chat_id=chat_id, text="Please follow the format for input.🙂 If you don't want to add debtee, input 'exit'.")
@@ -507,10 +513,9 @@ def add_debtor(message):
     else: 
         arr = msg.split(",")
         try:
-            #arr[0] is name of debtor, arr[1] is amount owed
-            #add in database 
-            # TODO process
-            body = "You lent " + arr[0] + " $" + arr[1] + " and it has been added to your debtor list. If you shy ah, can use our $ocialite feature to remind them to pay back okay! Go to /main to check out."
+            name_debtor, amt = arr[0], arr[1]
+            dbhelper.add_debtor_uome(chat_id, name_debtor.upper(), amt)
+            body = "You lent " + name_debtor + " $" + amt + " and it has been added to your debtor list. If you shy ah, can use our $ocialite feature to remind them to pay back okay! Go to /main to check out."
             bot.send_message(chat_id=chat_id, text=body)
         except IndexError:
             bot.send_message(chat_id=chat_id, text="Please follow the format for input.🙂 If you don't want to add debtor, input 'exit'.")
@@ -522,8 +527,8 @@ def delete_debtor(message):
     if msg.lower() == 'exit':
         bot.send_message(chat_id=chat_id, text="Press /main to explore other features at main menu.")
     else: 
-        if nameisindatabase:
-            #TODO delete from database
+        if dbhelper.is_debtor_present_uome(chat_id, msg.upper()):
+            dbhelper.delete_debtor_uome(chat_id, msg.upper())
             bot.send_message(chat_id=chat_id,text="You have removed " + msg + " from your debtor list. Good job! Meanwhile, explore other features at /main!")
         else:
             body = "The name you've keyed in is not in our database. Please check if you have keyed in the name of your debtor correctly or check if the person is in your debtor list and input again. If you have no debtor to delete, then input 'exit'."
