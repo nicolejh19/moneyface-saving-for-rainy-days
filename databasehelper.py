@@ -19,6 +19,7 @@ class DBHelper:
         dbcursor.execute('''CREATE TABLE IF NOT EXISTS monthly_exp (year_month INTEGER NOT NULL, user_id INTEGER NOT NULL, amount TEXT NOT NULL, within_budget INTEGER NOT NULL, PRIMARY KEY(year_month, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id), FOREIGN KEY(year_month, user_id) REFERENCES monthly_budget(year_month, user_id))''')
         dbcursor.execute('''CREATE TABLE IF NOT EXISTS monthly_savings (date_time DATE NOT NULL, year_month INTEGER NOT NULL, user_id INTEGER NOT NULL, amount TEXT NOT NULL, type_savings TEXT NOT NULL, PRIMARY KEY(date_time, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id))''')
         dbcursor.execute('''CREATE TABLE IF NOT EXISTS iou (user_id_debtor INTEGER NOT NULL, name_debtee TEXT NOT NULL, amount TEXT NOT NULL, PRIMARY KEY(user_id_debtor, name_debtee), FOREIGN KEY(user_id_debtor) REFERENCES users(user_id))''')
+        dbcursor.execute('''CREATE TABLE IF NOT EXISTS uome (user_id_debtee INTEGER NOT NULL, name_debtor TEXT NOT NULL, amount TEXT NOT NULL, PRIMARY KEY(user_id_debtee, name_debtor), FOREIGN KEY(user_id_debtee) REFERENCES users(user_id))''')
         db.commit()
         dbcursor.close()
 
@@ -341,15 +342,79 @@ class DBHelper:
         else:
             stmt = '''INSERT INTO iou (user_id_debtor, name_debtee, amount) VALUES (?, ?, ?)'''
             args = (user_id_debtor, name_debtee, amt)
-            dbcursor.execute(stmt, args)
-            db.commit()
-            dbcursor.close() 
+        dbcursor.execute(stmt, args)
+        db.commit()
+        dbcursor.close() 
             
     def delete_debtee_iou(self, user_id_debtor, name_debtee):
         db = sqlite3.connect(self.dbname)
         dbcursor = db.cursor()
         stmt = '''DELETE FROM iou WHERE user_id_debtor = ? AND name_debtee = ?'''
         args = (user_id_debtor, name_debtee, )
+        dbcursor.execute(stmt, args)
+        db.commit()
+        dbcursor.close()
+
+    def get_all_debtors(self, user_id):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT name_debtor, amount FROM uome WHERE user_id_debtee = ?'''
+        args = (user_id, )
+        try:
+            dbcursor.execute(stmt, args)
+            records = dbcursor.fetchall()
+            res = []
+            for row in records:
+                res.append((row[0], row[1], ))
+                return res
+        except sqlite3.DatabaseError:
+            return []
+        finally:
+            dbcursor.close()
+
+    def is_debtor_present_uome(self, user_id_debtee, name_debtor):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT amount FROM uome WHERE user_id_debtee = ? AND name_debtor = ?'''
+        args = (user_id_debtee, name_debtor, )
+        try: 
+            dbcursor.execute(stmt, args)
+            record = dbcursor.fetchone()
+            return record is not None
+        except (sqlite3.Error, TypeError):
+            return False
+        finally:
+            dbcursor.close()
+            
+    def get_debtor_amount(self, user_id_debtee, name_debtor):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT amount FROM uome WHERE user_id_debtee = ? AND name_debtor = ?'''
+        args = (user_id_debtee, name_debtor, )
+        dbcursor.execute(stmt, args)
+        record = dbcursor.fetchone()
+        dbcursor.close()
+        return record[0]
+
+    def add_debtor_uome(self, user_id_debtee, name_debtor, amt):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        if self.is_debtor_present_uome(user_id_debtee, name_debtor):
+            new_amt = Decimal(amt) + Decimal(self.get_debtor_amount(user_id_debtee, name_debtor))
+            stmt = '''UPDATE uome SET amount = ? WHERE user_id_debtee = ? AND name_debtor = ?'''
+            args = (str(new_amt.quantize(Decimal('1.00'))), user_id_debtee, name_debtor, )
+        else:
+            stmt = '''INSERT INTO uome (user_id_debtee, name_debtor, amount) VALUES (?, ?, ?)'''
+            args = (user_id_debtee, name_debtor, amt)
+        dbcursor.execute(stmt, args)
+        db.commit()
+        dbcursor.close()
+        
+    def delete_debtor_uome(self, user_id_debtee, name_debtor):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''DELETE FROM uome WHERE user_id_debtee = ? AND name_debtor = ?'''
+        args = (user_id_debtee, name_debtor, )
         dbcursor.execute(stmt, args)
         db.commit()
         dbcursor.close()
