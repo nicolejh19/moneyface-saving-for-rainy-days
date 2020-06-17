@@ -13,7 +13,7 @@ class DBHelper:
         self.dbname = dbname
         db = sqlite3.connect(self.dbname)
         dbcursor = db.cursor()
-        dbcursor.execute('''CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY)''')
+        dbcursor.execute('''CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, phone_number TEXT DEFAULT "NORECORD" NOT NULL, username TEXT NOT NULL)''')
         dbcursor.execute('''CREATE TABLE IF NOT EXISTS monthly_budget (year_month INTEGER NOT NULL, user_id INTEGER NOT NULL, amount TEXT NOT NULL, PRIMARY KEY(year_month, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id))''')
         dbcursor.execute('''CREATE TABLE IF NOT EXISTS daily_exp (date_time DATE NOT NULL, category TEXT NOT NULL, amount TEXT NOT NULL, user_id INTEGER NOT NULL, year_month INTEGER NOT NULL, PRIMARY KEY (date_time, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id), FOREIGN KEY(year_month, user_id) REFERENCES monthly_budget(year_month, user_id))''')
         dbcursor.execute('''CREATE TABLE IF NOT EXISTS monthly_exp (year_month INTEGER NOT NULL, user_id INTEGER NOT NULL, amount TEXT NOT NULL, within_budget INTEGER NOT NULL, PRIMARY KEY(year_month, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id), FOREIGN KEY(year_month, user_id) REFERENCES monthly_budget(year_month, user_id))''')
@@ -23,18 +23,75 @@ class DBHelper:
         db.commit()
         dbcursor.close()
 
-    def add_user(self, user_id):
+    def add_user(self, user_id, username):
         db = sqlite3.connect(self.dbname)
         dbcursor = db.cursor()
         try: 
-            stmt = '''INSERT INTO users (user_id) VALUES (?)'''
-            args = (user_id, )
+            stmt = '''INSERT INTO users (user_id, username) VALUES (?, ?)'''
+            args = (user_id, username, )
             dbcursor.execute(stmt, args)
             db.commit()
         except sqlite3.IntegrityError:
             pass
         finally:
             dbcursor.close()
+
+    def update_phone_number(self, user_id, phone_number):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''UPDATE users SET phone_number = ? WHERE user_id = ?'''
+        args = (phone_number, user_id, )
+        dbcursor.execute(stmt, args)
+        db.commit()
+        dbcursor.close()       
+        
+    def is_user_phone_number_stored(self, user_id):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT phone_number FROM users WHERE user_id = ?'''
+        args = (user_id, )
+        try: 
+            dbcursor.execute(stmt, args)
+            record = dbcursor.fetchone()
+            return record[0] != "NORECORD"
+        except (sqlite3.Error, TypeError):
+            return False
+        finally:
+            dbcursor.close()
+
+    def get_username(self, user_id):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT username FROM users WHERE user_id = ?'''
+        args = (user_id, )
+        dbcursor.execute(stmt, args)
+        record = dbcursor.fetchone()
+        dbcursor.close()
+        return record[0] 
+    
+    def is_user_stored(self, phone_number):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT user_id FROM users WHERE phone_number = ?'''
+        args = (phone_number, )
+        try: 
+            dbcursor.execute(stmt, args)
+            record = dbcursor.fetchone()
+            return record is not None
+        except (sqlite3.Error, TypeError):
+            return False
+        finally:
+            dbcursor.close()
+            
+    def get_user_id(self, phone_number):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT user_id FROM users WHERE phone_number = ?'''
+        args = (phone_number, )
+        dbcursor.execute(stmt, args)
+        record = dbcursor.fetchone()
+        dbcursor.close()
+        return record[0]
 
     def get_all_users(self):
         db = sqlite3.connect(self.dbname)
