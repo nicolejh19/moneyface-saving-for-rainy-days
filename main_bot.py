@@ -55,6 +55,11 @@ debtee_button.add(types.KeyboardButton('Add Debtee'), types.KeyboardButton('Dele
 debtor_button = types.ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
 debtor_button.add(types.KeyboardButton('Add Debtor'), types.KeyboardButton('Delete Debtor'))
 
+socialite_button = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+socialite_button.add(types.KeyboardButton('Remind Friend'))
+
+contact_button = types.ReplyKeyboardMarkup(resize_keyboard=True)
+contact_button.add(types.KeyboardButton(text='Share Contact', request_contact=True))
 
 def is_float(amt):
     try:
@@ -100,6 +105,17 @@ def process_next_step(message):
         body = "You have selected “Manage Debts”.🧾\nSelect *IOU* to update/review debtees and the amount YOU owe. Select *UOMe* to update/review your debtors and the amount THEY owe you. 💶"
         bot.send_message(chat_id=chat_id, text=body, reply_markup=debt_button, parse_mode="Markdown")
         bot.register_next_step_handler(message, process_debts)
+    elif msg == '$ocialite':
+        #TODO
+        #TO DEAL WITH DATABASE
+        if databasehascontactalready:
+            body = "You have selected *$ocialite*.👯 \nSelect *Challenge Friend* to challenge your friend to spend within an amount for this month! 💪 Select *Remind Friend* to remind your friend to pay you back! 😑"
+            bot.send_message(chat_id=chat_id, body=body, reply_markup=socialite_button, parse_mode="Markdown")
+            bot.register_next_step_handler(message, process_socialite)
+        else:
+            body = "To use this feature, we will require your contact. 📞 Please be assured that the information is used solely for engagement with your friends.🙂\nClick on the 'Share Contact' button below to share your contact with us. If you do not wish to share contact, type 'exit' to go back to main menu."
+            bot.send_message(chat_id=chat_id, body=body, reply_markup=contact_button)
+            bot.register_next_step_handler(message, extract_contact)
     else: 
         bot.send_message(chat_id, text= "Oh dear, you just destroyed my train of thoughts.😩 Type '/main' for me to restart.", reply_markup= types.ReplyKeyboardRemove())
 
@@ -535,6 +551,53 @@ def delete_debtor(message):
             bot.send_message(chat_id=chat_id,text=body)
             bot.register_next_step_handler(message, delete_debtor)
 
+def extract_contact(message):
+    chat_id = message.from_user.id
+    try:
+        #TODO
+        ###TO STORE IN DATABASE#####
+        #contact is a string e.g. +65......
+        contact = message.contact.phone_number
+        body = "Great! 🥳 Select *Challenge Friend* to challenge your friend to spend within an amount for this month! 💪 Select *Remind Friend* to remind your friend to pay you back! 😑"
+        bot.send_message(chat_id=chat_id, text=body, reply_markup=socialite_button)
+        bot.register_next_step_handler(message, process_socialite)
+    except Exception as err:
+        bot.send_message(chat_id=chat_id, text="Press /main to go back to the main menu 🙂", reply_markup=types.ReplyKeyboardRemove())
+
+def process_socialite(message):
+    chat_id = message.from_user.id
+    bot.send_chat_action(chat_id=chat_id, action="Typing")
+    msg = message.text
+    if msg == 'Remind Friend':
+        body = "To remind your friend to pay you back the amount he/she owed you, please input your friend's contact number and the amount. ☎️ Please input in the following format: “+[country code][number],[amount]”. \nE.g. if your friend’s number is 91234567 and his/her country code is 65 and the amount he/she owed you is $50, then key in +6591234567,50. Do check before keying in and do not leave any spacing.🙂"
+        bot.send_message(chat_id=chat_id, text= body, reply_markup = types.ReplyKeyboardRemove())
+        bot.register_next_step_handler(message, remind_friend)
+    else:
+        bot.send_message(chat_id=chat_id, text="Don't want to interact with your friends? Explore other features at /main!", reply_markup=types.ReplyKeyboardRemove())
+
+def remind_friend(message):
+    chat_id = message.from_user.id
+    bot.send_chat_action(chat_id=chat_id, action="Typing")
+    msg = message.text
+    if msg.lower() == 'exit':
+        bot.send_message(chat_id=chat_id, text="Press /main to explore other features at main menu.")
+    else:
+        #TODO 
+        #i think need try except here?
+        arr = msg.split(",")
+        #arr[0] is the friend's number, arr[1] is the amount
+        ##TO CHECK IN DATABASE
+        if numberisindatabase:
+            if is_float(arr[1]):
+                ###ENTER THE AMOUNT IN DATABASE
+                ###EXTRACT THE CHAT_ID AND SEND TO THE FRIEND 
+                bot.send_message(chat_id=chat_id, text="We have helped you chase your friend to pay you back!💵 Hopefully, your money comes back to you quickly. Meanwhile, explore other features at /main!")
+            else:
+                bot.send_message(chat_id=chat_id, text="Key in the amount properly leh.🤨 If your friend already paid you back and no need to bug them anymore, type 'exit'.")
+                bot.register_next_step_handler(message, remind_friend)
+        else:
+            body = "Unfortunately, the contact that you keyed in is not in our database.😪 Get your friend to use 'Saving for Rainy Days' today and activate the $ocialite feature to interact with your friends!😀 For now, explore other features at /main!"
+            bot.send_message(chat_id=chat_id, text=body)
 
 def schedule_checker():
     while True:
@@ -584,7 +647,8 @@ def monthly():
                 clothes = (curr_clothes_exp/ total_spending) * 100
                 transport = (curr_transport_exp/ total_spending) * 100
                 necc = (curr_necc_exp/ total_spending) * 100
-                others = (curr_others_exp / total_spending) * 100ast_month_exp = dbhelper.get_monthly_exp(i, year_month)
+                others = (curr_others_exp / total_spending) * 100
+                last_month_exp = dbhelper.get_monthly_exp(i, year_month)
                 ### TO DO ###
                 ### PIE CHART ###
                 default_msg = "It is a new month!🤗 Start planning for your monthly savings and budget. Here's a summary of your savings and spendings last month:\n🗓 Monthly savings: " + savings_msg + "\n🗓 Average monthly savings: " + ave_savings_msg + "\n🗓 Monthly budget: " + budget_msg + "\n🗓 Monthly expenditure: " + exp_msg + succ_or_fail_msg + "\n🗓 Average monthly expenditure: " + ave_exp_msg 
