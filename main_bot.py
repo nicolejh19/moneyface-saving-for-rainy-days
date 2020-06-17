@@ -106,9 +106,7 @@ def process_next_step(message):
         bot.send_message(chat_id=chat_id, text=body, reply_markup=debt_button, parse_mode="Markdown")
         bot.register_next_step_handler(message, process_debts)
     elif msg == '$ocialite':
-        #TODO
-        #TO DEAL WITH DATABASE
-        if databasehascontactalready:
+        if dbhelper.is_user_phone_number_stored(chat_id):
             body = "You have selected *$ocialite*.👯 \nSelect *Challenge Friend* to challenge your friend to spend within an amount for this month! 💪 Select *Remind Friend* to remind your friend to pay you back! 😑"
             bot.send_message(chat_id=chat_id, body=body, reply_markup=socialite_button, parse_mode="Markdown")
             bot.register_next_step_handler(message, process_socialite)
@@ -554,10 +552,10 @@ def delete_debtor(message):
 def extract_contact(message):
     chat_id = message.from_user.id
     try:
-        #TODO
-        ###TO STORE IN DATABASE#####
-        #contact is a string e.g. +65......
         contact = message.contact.phone_number
+        if contact[0] != '+':
+            contact = '+' + contact
+        dbhelper.update_phone_number(chat_id, contact)
         body = "Great! 🥳 Select *Challenge Friend* to challenge your friend to spend within an amount for this month! 💪 Select *Remind Friend* to remind your friend to pay you back! 😑"
         bot.send_message(chat_id=chat_id, text=body, reply_markup=socialite_button)
         bot.register_next_step_handler(message, process_socialite)
@@ -582,23 +580,25 @@ def remind_friend(message):
     if msg.lower() == 'exit':
         bot.send_message(chat_id=chat_id, text="Press /main to explore other features at main menu.")
     else:
-        #TODO 
-        #i think need try except here?
-        arr = msg.split(",")
-        #arr[0] is the friend's number, arr[1] is the amount
-        ##TO CHECK IN DATABASE
-        if numberisindatabase:
-            if is_float(arr[1]):
-                ###ENTER THE AMOUNT IN DATABASE
-                ###EXTRACT THE CHAT_ID AND SEND TO THE FRIEND 
-                bot.send_message(chat_id=chat_id, text="We have helped you chase your friend to pay you back!💵 Hopefully, your money comes back to you quickly. Meanwhile, explore other features at /main!")
+        try: 
+            friend_number, amt = arr[0], arr[1]
+            if dbhelper.is_user_stored(friend_number):
+                if is_float(amt):
+                    friend_chat_id = dbhelper.get_user_id(friend_number)
+                    bot.send_message(chat_id=friend_chat_id, text="O$P$: Hearsay you still owe " + username + " $" + str(amt) + " 💰ah...Can pay back quickly or not… 😠 People also need to save money one leh…")
+                    bot.send_message(chat_id=chat_id, text="We have helped you chase your friend to pay you back!💵 Hopefully, your money comes back to you quickly.", reply_markup=socialite_button)
+                    bot.register_next_step_handler(message, process_socialite)
+                else:
+                    bot.send_message(chat_id=chat_id, text="Key in the amount properly leh.🤨 If your friend already paid you back and no need to bug them anymore, type 'exit'.")
+                    bot.register_next_step_handler(message, remind_friend)
             else:
-                bot.send_message(chat_id=chat_id, text="Key in the amount properly leh.🤨 If your friend already paid you back and no need to bug them anymore, type 'exit'.")
-                bot.register_next_step_handler(message, remind_friend)
-        else:
-            body = "Unfortunately, the contact that you keyed in is not in our database.😪 Get your friend to use 'Saving for Rainy Days' today and activate the $ocialite feature to interact with your friends!😀 For now, explore other features at /main!"
-            bot.send_message(chat_id=chat_id, text=body)
-
+                body = "Unfortunately, the contact that you keyed in is not in our database.😪 Get your friend to use 'Saving for Rainy Days' today and activate the $ocialite feature to interact with your friends!�"
+                bot.send_message(chat_id=chat_id, text=body, reply_markup=socialite_button)
+                bot.register_next_step_handler(message, process_socialite)
+        except IndexError:
+            bot.send_message(chat_id=chat_id, text="Key in the number and amount properly leh.🤨 If your friend already paid you back and no need to bug them anymore, type 'exit'.\nOtherwise, please input again in the following format: “+[country code][number],[amount]”. Do check before keying in and do not leave any spacing.🙂")
+            bot.register_next_step_handler(message, remind_friend)
+                
 def schedule_checker():
     while True:
         schedule.run_pending()
