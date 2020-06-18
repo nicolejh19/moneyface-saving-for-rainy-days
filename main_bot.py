@@ -178,6 +178,14 @@ def process_bonus_savings(message):
         bot.send_message(chat_id=chat_id, text="Input your bonus savings properly leh. Later I forget again you have to go back to /main hor")
         bot.register_next_step_handler(message, process_bonus_savings)
 
+def is_aboveequal_average(current_amount, average_amount):
+    if current_amount > average_amount:
+        return ">"
+    elif current_amount == average_amount:
+        return "="
+    else:
+        return "<"
+
 def process_savings_records(message):
     chat_id = message.from_user.id
     msg = message.text
@@ -187,12 +195,25 @@ def process_savings_records(message):
     if msg == 'Current Month':
         curr_savings = dbhelper.get_current_savings(year_month, chat_id)
         if curr_savings.isnumeric() or is_float(curr_savings):
-            bot.send_message(chat_id=chat_id, text="You have saved $" + curr_savings + " this month. Tell you something, go /main to check out promotions and save somemore okay.", reply_markup=types.ReplyKeyboardRemove())
+            average_savings = dbhelper.get_average_monthly_savings(chat_id)
+            symflag = is_aboveequal_average(float(curr_savings), average_savings)
+            if symflag == ">":
+                comparison = "\nGood job! Your savings for this month is above the average savings for the past months. God of Fortune is proud of you."
+            elif symflag == "=":
+                comparison = "\nYour savings for this month is the same as the average savings for the past months. Keep on saving!"
+            else:
+                comparison = "\nYour savings for this month is below the average savings for the past months. Try to save more okay, you never know when there will be rainy days."
+            bot.send_message(chat_id=chat_id, text="Here's the statistics:\n🗓 Savings for the current month: $" + curr_savings + "\n🗓Average monthly savings: $" +  str(average_savings) + comparison, reply_markup=types.ReplyKeyboardRemove())
         else:
             bot.send_message(chat_id=chat_id, text=curr_savings, reply_markup=types.ReplyKeyboardRemove())
     elif msg == 'History':
         total_savings = dbhelper.get_total_savings(chat_id)
-        bot.send_message(chat_id=chat_id, text=total_savings, reply_markup=types.ReplyKeyboardRemove())
+        if total_savings != "0.00" and dbhelper.has_history_savings(chat_id, year_month):
+            average_savings = dbhelper.get_average_monthly_savings(chat_id)
+            send_text = "Here's the statistics:\n🗓 Total savings since using Saving for Rainy Days: $" + total_savings + "\n🗓Average monthly savings: $" +  str(average_savings) + "\nKeep on saving!"
+        else:
+            send_text = "There is no history of your savings. Keep saving and using Saving for Rainy Days to see your records next month!"
+        bot.send_message(chat_id=chat_id, text=send_text, reply_markup=types.ReplyKeyboardRemove())
     else:
         bot.send_message(chat_id=chat_id, text="My brain is not so good. Now I forgot what you want to do. Go back to /main leh :C", reply_markup=types.ReplyKeyboardRemove())
 
@@ -356,27 +377,56 @@ def process_records(message):
         unix_date = int(message.date)
         dt = datetime.utcfromtimestamp(unix_date)
         year_month = str(dt.year) + str(dt.month)
-        #TO-DO 
-        #PIE CHART 
-        curr_food_exp = dbhelper.get_monthly_category_exp(chat_id, year_month, 'FOOD')
-        curr_clothes_exp = dbhelper.get_monthly_category_exp(chat_id, year_month, 'CLOTHES')
-        curr_transport_exp = dbhelper.get_monthly_category_exp(chat_id, year_month, 'TRANSPORT')
-        curr_necc_exp = dbhelper.get_monthly_category_exp(chat_id, year_month, 'NECESSITIES')
-        curr_others_exp = dbhelper.get_monthly_category_exp(chat_id, year_month, 'OTHERS')
-        if curr_exp.isnumeric() or is_float(curr_exp): 
-            bot.send_message(chat_id=chat_id, text="You have spent $" + curr_exp +  " so far in this month\n" + curr_budget + "\nGo back to /main to check out good promotions okay! Don't say I never say ah!", reply_markup=types.ReplyKeyboardRemove())
-        else:
-            bot.send_message(chat_id=chat_id, text=curr_exp, reply_markup=types.ReplyKeyboardRemove())
+        curr_exp = dbhelper.get_monthly_exp(chat_id, year_month)
+        curr_budget = dbhelper.get_monthly_budget(year_month, chat_id)
+        if not is_float(curr_exp):
+            bot.send_message(chat_id=chat_id, text="You have not recorded your expenditure for this month. Go update your expenditure leh.", reply_markup=types.ReplyKeyboardRemove())
+        elif not is_float(curr_budget):
+            bot.send_message(chat_id=chat_id, text="You have not set your budget for this month. Go set your budget leh.", reply_markup=types.ReplyKeyboardRemove())
+        else: 
+            total_spending = float(curr_exp)
+            curr_food_exp = float(dbhelper.get_monthly_category_exp(chat_id, year_month, 'FOOD'))
+            curr_clothes_exp = float(dbhelper.get_monthly_category_exp(chat_id, year_month, 'CLOTHES'))
+            curr_transport_exp = float(dbhelper.get_monthly_category_exp(chat_id, year_month, 'TRANSPORT'))
+            curr_necc_exp = float(dbhelper.get_monthly_category_exp(chat_id, year_month, 'NECESSITIES'))
+            curr_others_exp = float(dbhelper.get_monthly_category_exp(chat_id, year_month, 'OTHERS'))
+            food = (curr_food_exp/total_spending) * 100
+            clothes = (curr_clothes_exp/ total_spending) * 100
+            transport = (curr_transport_exp/ total_spending) * 100
+            necc = (curr_necc_exp/ total_spending) * 100
+            others = (curr_others_exp / total_spending) * 100
+            ### TO DO ###
+            ### PIE CHART ####
+            perc_budget_used = ((Decimal(curr_exp) / Decimal(curr_budget)) * 100).quantize(Decimal('1.00'))
+            if perc_budget_used > 100:
+                warn_msg = "❗️❗️❗️ You have exceeded your budget this month! God of Fortune is disappointed. 🥺 Try harder next month!"
+            elif perc_budget_used >= 90:
+                warn_msg = "❗️❗️ You have hit or exceeded 90% of your budget set for the month! 😧 Be extra careful not to exceed your budget okay!"
+            elif perc_budget_used >= 70:
+                warn_msg = "❗️ You have hit or exceeded 70% of your budget set for the month! 🤑 Be careful not to exceed your budget okay!"
+            else:
+                warn_msg = ""
+                bot.send_message(chat_id=chat_id, text="Here's the statistics:\n🗓 Budget for this month: $" + curr_budget + "\n🗓 Total spending for this month: $" + curr_exp + "\n🗓 Percentage of budget used: " + str(perc_budget_used) + "%\n" + warn_msg + "\nHere is a breakdown of your spendings this month as shown in the pie chart below.\n", reply_markup=types.ReplyKeyboardRemove())
     elif msg == 'History':
         unix_date = int(message.date)
         dt = datetime.utcfromtimestamp(unix_date)
         year_month = str(dt.year) + str(dt.month)
         average_monthly_exp = dbhelper.get_average_monthly_exp(chat_id)
-        percentage_of_months_within_budget = dbhelper.get_percentage_within_budget(chat_id)
-        if not average_monthly_exp.isnumeric() or not is_float(average_monthly_exp):
-            bot.send_message(chat_id=chat_id, text="History of your spendings not available. Keep on tracking and you will see it next month!", reply_markup=types.ReplyKeyboardRemove())
+        num_months_exp = dbhelper.get_num_months_exp(chat_id)
+        if num_months_exp == 0 or not is_float(average_monthly_exp):
+            bot.send_message(chat_id=chat_id, text="History of your spendings not available yet. Keep on tracking and you will see it next month!", reply_markup=types.ReplyKeyboardRemove())
         else:
-            bot.send_message(chat_id=chat_id, text="Your average monthly expenditure is $" + average_monthly_exp + + " since you started using Saving for Rainy Days. You have kept within budget " + percentage_of_months_within_budget + "% of the time" + "\nPress /main to continue your tracking!", reply_markup=types.ReplyKeyboardRemove())
+            percentage_of_months_within_budget = dbhelper.get_percentage_within_budget(chat_id)
+            num_months_exceed = dbhelper.get_num_exceed_budget(chat_id)
+            if Decimal(percentage_of_months_within_budget) == Decimal(100.00):
+                resp_msg = "Excellent! 👏🏻 You have kept within budget all the time! 🥳 God of Fortune is very proud of you."
+            elif Decimal(percentage_of_months_within_budget) >= Decimal(75.00):
+                resp_msg = "Keep up the good work! 😊 Sticking to a budget may not be easy, but you have shown that you can do it! 🥰"
+            elif Decimal(percentage_of_months_within_budget) >= Decimal(50.00):
+                resp_msg = 'Keep trying! As the quote says, "Money, like emotions, is something you must control to keep your life on the right track.", try to control your expenditure. It may not be easy, but you can do it! 🥰'
+            else:
+                resp_msg = '😧 Try harder to keep within your budget every month! Here\'s a small piece of advice from Benjamin Franklin, “Beware of little expenses; a small leak will sink a great ship.” 💪🏻 Start controlling your expenditure today!'
+            bot.send_message(chat_id=chat_id, text="Here's the statistics:\n🗓 Average monthly expenditure: $" + average_monthly_exp + "\n🗓 Out of " + str(num_months_exp) + " months of using Saving for Rainy Days, you have exceeded your budget " + str(num_months_exceed) + " times.\n🗓 Percentage of months successfully spending within budget: " + percentage_of_months_within_budget + "%\n" + resp_msg, reply_markup=types.ReplyKeyboardRemove())
     else:
         bot.send_message(chat_id=chat_id, text="Oopsies...Press /main to resurrect me", reply_markup=types.ReplyKeyboardRemove())
 
