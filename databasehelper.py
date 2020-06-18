@@ -208,6 +208,34 @@ class DBHelper:
             return False
         finally:
             dbcursor.close()
+    
+    ## FOR TESTING ONLY 
+    def test_add_past_month_exp(self):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''INSERT INTO monthly_exp (year_month, amount, user_id, within_budget) VALUES (?, ?, ?, ?)'''
+        year_month = "20205"
+        amount = "30"
+        user_id = "INSERT USER ID HERE"
+        within_budget = 1 
+        args = (year_month, amount, user_id, within_budget, )
+        dbcursor.execute(stmt, args)
+        db.commit()
+        dbcursor.close()
+        
+    ## FOR TESTING ONLY 
+    def test_2_for_exp(self):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''INSERT INTO monthly_exp (year_month, amount, user_id, within_budget) VALUES (?, ?, ?, ?)'''
+        year_month = "20204"
+        amount = "50"
+        user_id = "INSERT USER ID HERE"
+        within_budget = 0
+        args = (year_month, amount, user_id, within_budget, )
+        dbcursor.execute(stmt, args)
+        db.commit()
+        dbcursor.close()
 
     def get_average_monthly_exp(self, user_id):
         db = sqlite3.connect(self.dbname)
@@ -227,6 +255,41 @@ class DBHelper:
             return "No history of your spendings can be found. Start tracking your spendings from this month by using the spendings menu to update your daily expenditure."
         finally:
             dbcursor.close()
+
+    def get_num_months_exp(self, user_id):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt1 = '''SELECT COUNT(DISTINCT year_month) FROM monthly_exp GROUP BY user_id HAVING user_id = ?'''
+        args = (user_id, )
+        try:
+            dbcursor.execute(stmt1, args)
+            record = dbcursor.fetchone()
+            if record is None:
+                return 0 
+            else:
+                return record[0]
+        except sqlite3.Error:
+            return 0
+        finally:
+            dbcursor.close()
+            
+    def get_num_exceed_budget(self, user_id):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt1 = '''SELECT within_budget FROM monthly_exp WHERE user_id = ?'''
+        args = (user_id, )
+        try:
+            dbcursor.execute(stmt1, args)
+            records = dbcursor.fetchall()
+            counter = 0
+            for row in records:
+                if row[0] == 0:
+                    counter += 1
+            return counter
+        except sqlite3.DatabaseError:
+            return "No history of your spendings can be found. Start tracking your spendings from this month by using the spendings menu to update your daily expenditure."
+        finally:
+            dbcursor.close()
     
     def get_percentage_within_budget(self, user_id):
         db = sqlite3.connect(self.dbname)
@@ -242,7 +305,7 @@ class DBHelper:
                 if row[0] == 1:
                     counter += 1
             res = (counter / total) * 100
-            return str(round(res, 2))
+            return str(Decimal(res).quantize(Decimal('1.00'))) 
         except (sqlite3.DatabaseError, ZeroDivisionError):
             return "No history of your spendings can be found. Start tracking your spendings from this month by using the spendings menu to update your daily expenditure."
         finally:
@@ -338,6 +401,32 @@ class DBHelper:
             finally:
                 dbcursor.close()
     
+    def has_history_savings(self, user_id, year_month):
+        num_months = self.get_num_months_savings(user_id)
+        flag = self.get_whether_current_monthly_saved(year_month, user_id)
+        if flag and num_months != 1:
+            return True
+        elif not flag and num_months >= 1:
+            return True
+        else:
+            return False
+        
+    ## FOR TESTING ONLY 
+    def test_add_past_month_savings(self):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''INSERT INTO monthly_savings (year_month, date_time, amount, user_id, type_savings) VALUES (?, ?, ?, ?, ?)'''
+        year_month = "20205"
+        unix_date = 1558742400
+        date_time = datetime.utcfromtimestamp(unix_date)
+        amount = "30"
+        user_id = "INSERT USER ID HERE"
+        type_savings = "MONTHLY"
+        args = (year_month, date_time, amount, user_id, type_savings, )
+        dbcursor.execute(stmt, args)
+        db.commit()
+        dbcursor.close()
+
     def get_average_monthly_savings(self, user_id):
         total_savings = self.get_total_savings(user_id)
         # print("total savings: " + str(total_savings))
