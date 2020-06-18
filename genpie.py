@@ -1,11 +1,28 @@
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 class chart:
-    def make_pie(self, f, c, t, d, o):
-        print("done")
-        # Pie chart, where the slices will be ordered and plotted counter-clockwise:
-        sizes = [f, c, t, d, o]
-        explode = (0, 0, 0, 0, 0)  # only "explode" the 2nd slice (i.e. 'Hogs')
-        plt.pie(sizes, explode=explode, labels=labels)
-        plt.savefig('foo.png')
+    def make_piechart(self, f, c, t, d, o, monthly=True):
+        labels = 'Food','Clothes','Transport', 'Daily Necessities', 'Others'
+        dictionary = {}
+        if (f > 0): dictionary['Food'] = f
+        if (c > 0): dictionary['Clothes'] = c
+        if (t > 0): dictionary['Transport'] = t
+        if (d > 0): dictionary['Daily Necessities'] = d
+        if (o > 0): dictionary['Others'] = o
+        
+        labels = []
+        sizes = []
+        for entry in dictionary:
+            labels.append(entry)
+            sizes.append(dictionary[entry])
+        explode = tuple([0] * len(labels))
+        plt.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%')
+        if monthly:
+            plt.savefig('monthly.png')
+        else:
+            plt.savefig('current.png')
+        plt.clf()
 
+        return max(dictionary, key=dictionary.get) #return name of max category
