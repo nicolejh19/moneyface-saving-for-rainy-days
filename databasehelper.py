@@ -475,3 +475,20 @@ class DBHelper:
         dbcursor.execute(stmt, args)
         db.commit()
         dbcursor.close()
+
+    ## USE FOR TESTING ONLY
+    def test_all_users(self):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT user_id, phone_number FROM users'''
+        try:
+            dbcursor.execute(stmt)
+            records = dbcursor.fetchall()
+            res = []
+            for row in records:
+                res.append((row[0], row[1],))
+            return res
+        except sqlite3.DatabaseError:
+            return []
+        finally:
+            dbcursor.close() 
