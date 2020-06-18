@@ -604,15 +604,14 @@ def schedule_checker():
         schedule.run_pending()
         sleep(10)
 
-#monthly reminder + process monthly shit
-#library does not support monthly check so we do with dates
+#Monthly reminder with pie chart for spendings for that month
 def monthly():
     if date.today().day == 1:
         list_of_users = dbhelper.get_all_users()
-        year_month = str(date.today().year) + str(date.today().month - 1)     
+        year_month = str(date.today().year) + str(date.today().month - 1)
         for i in list_of_users:
             past_month_exp = dbhelper.get_monthly_exp(i, year_month)
-            past_month_savings = dbhelper.get_current_savings(year_month, i)  
+            past_month_savings = dbhelper.get_current_savings(year_month, i)
             past_month_budget = dbhelper.get_monthly_budget(year_month, i)
             average_savings = dbhelper.get_average_monthly_savings(i)
             if is_float(past_month_savings):
@@ -645,21 +644,21 @@ def monthly():
                 curr_others_exp = float(dbhelper.get_monthly_category_exp(i, year_month, 'OTHERS'))
                 food = (curr_food_exp/total_spending) * 100
                 clothes = (curr_clothes_exp/ total_spending) * 100
-                transport = (curr_transport_exp/ total_spending) * 100
+                transport = (curr_transport_exp / total_spending) * 100
                 necc = (curr_necc_exp/ total_spending) * 100
                 others = (curr_others_exp / total_spending) * 100
-                last_month_exp = dbhelper.get_monthly_exp(i, year_month)
-                ### TO DO ###
-                ### PIE CHART ###
-                default_msg = "It is a new month!🤗 Start planning for your monthly savings and budget. Here's a summary of your savings and spendings last month:\n🗓 Monthly savings: " + savings_msg + "\n🗓 Average monthly savings: " + ave_savings_msg + "\n🗓 Monthly budget: " + budget_msg + "\n🗓 Monthly expenditure: " + exp_msg + succ_or_fail_msg + "\n🗓 Average monthly expenditure: " + ave_exp_msg 
+                monthly = chart()
+                spent_most = monthly.make_piechart(food, clothes, transport, necc, others)
+                default_msg = "It is a new month!🤗 Start planning for your monthly savings and budget. Here's a summary of your savings and spendings last month:\n🗓 Monthly savings: " + savings_msg + "\n🗓 Average monthly savings: " + ave_savings_msg + "\n🗓 Monthly budget: " + budget_msg + "\n🗓 Monthly expenditure: " + exp_msg + succ_or_fail_msg + "\n🗓 Average monthly expenditure: " + ave_exp_msg + "\n🗓 Category with highest spendings: " + spent_most
                 bot.send_message(chat_id=i, text=default_msg)
+                bot.send_photo(chat_id=i, photo=open('.../monthly.png' ,'rb')) #get path 
             else:
                 exp_msg = "No records of expenditure last month"
                 succ_or_fail_msg = ""
                 cat_msg = ""
                 if not is_float(average_exp):
                     ave_exp_msg = "No history of expenditure available"
-                    bot.send_message(chat_id=i, text=default_msg)
+                bot.send_message(chat_id=i, text=default_msg)
     else:
         return
 
