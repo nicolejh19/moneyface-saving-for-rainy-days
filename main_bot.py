@@ -56,7 +56,7 @@ debtor_button = types.ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
 debtor_button.add(types.KeyboardButton('Add Debtor'), types.KeyboardButton('Delete Debtor'))
 
 socialite_button = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-socialite_button.add(types.KeyboardButton('Remind Friend'))
+socialite_button.add(types.KeyboardButton('Challenge Friend'), types.KeyboardButton('Remind Friend'))
 
 contact_button = types.ReplyKeyboardMarkup(resize_keyboard=True)
 contact_button.add(types.KeyboardButton(text='Share Contact', request_contact=True))
@@ -616,12 +616,39 @@ def process_socialite(message):
     chat_id = message.from_user.id
     bot.send_chat_action(chat_id=chat_id, action="Typing")
     msg = message.text
-    if msg == 'Remind Friend':
+    if msg == 'Challenge Friend':
+        body = "To challenge your friend to spend within a reasonable amount that you decide for this month, please input your friend's contact number together with the amount to challenge. ☎️ Please input in the following format: “+[country code][number],[amount]”. \nE.g. if your friend’s number is 91234567 and his/her country code is 65 and the amount to challenge is $300, then key in +6591234567,300. Do check before keying in and do not leave any spacing.🙂"
+        bot.send_message(chat_id=chat_id, text=body, reply_markup=types.ReplyKeyboardRemove())
+        bot.register_next_step_handler(message, challenge_friend)
+    elif msg == 'Remind Friend':
         body = "To remind your friend to pay you back the amount he/she owed you, please input your friend's contact number and the amount. ☎️ Please input in the following format: “+[country code][number],[amount]”. \nE.g. if your friend’s number is 91234567 and his/her country code is 65 and the amount he/she owed you is $50, then key in +6591234567,50. Do check before keying in and do not leave any spacing.🙂"
         bot.send_message(chat_id=chat_id, text= body, reply_markup = types.ReplyKeyboardRemove())
         bot.register_next_step_handler(message, remind_friend)
     else:
         bot.send_message(chat_id=chat_id, text="Don't want to interact with your friends? Explore other features at /main!", reply_markup=types.ReplyKeyboardRemove())
+def challenge_friend(message):
+    chat_id = message.from_user.id
+    bot.send_chat_action(chat_id=chat_id, action="Typing")
+    msg = message.text
+    if msg.lower() == 'exit':
+        bot.send_message(chat_id=chat_id, text="Press /main to explore other features at main menu.")
+    else:
+    #TODO
+        #i think need try except here?
+        arr = msg.split(",")
+        #arr[0] is the friend's number, arr[1] is the amount
+        ##TO CHECK IN DATABASE
+        if numberisindatabase:
+            if is_float(arr[1]):
+                ###ENTER THE AMOUNT IN DATABASE
+                ###EXTRACT THE CHAT_ID AND SEND TO THE FRIEND THE CHALLENGE
+                bot.send_message(chat_id=chat_id, text="You have successfully challenged your friend!👍 Let's hope your friend can succeed the challenge. Meanwhile, explore other features at /main!")
+            else:
+                bot.send_message(chat_id=chat_id, text="Key in the amount properly leh.🤨 If you think your friend confirm cmi and don't want to challenge anymore, type 'exit'.")
+                bot.register_next_step_handler(message, challenge_friend)
+        else:
+            body = "Unfortunately, the contact that you keyed in is not in our database.😪 Get your friend to use 'Saving for Rainy Days' today and activate the $ocialite feature to interact with your friends!😀 For now, explore other features at /main!"
+            bot.send_message(chat_id=chat_id, text=body)
 
 def remind_friend(message):
     chat_id = message.from_user.id
