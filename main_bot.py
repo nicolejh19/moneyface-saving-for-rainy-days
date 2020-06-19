@@ -290,6 +290,24 @@ def process_daily_expenditure(message):
     else:
         bot.send_message(chat_id=chat_id, text= "Finished your input for daily expenditure? 😀 Go back to /main to look for promotions lah!", reply_markup=types.ReplyKeyboardRemove())
 
+def spending_warning(user_id, year_month):
+    curr_monthly_exp = dbhelper.get_monthly_exp(user_id, year_month)
+    curr_month_budget = dbhelper.get_monthly_budget(year_month, user_id)
+    if is_float(curr_month_budget):
+        perc_used = ((Decimal(curr_monthly_exp) / Decimal(curr_month_budget)) * 100).quantize(Decimal('1.00'))
+        if perc_used > 100:
+            res = "\n❗️❗️❗️ You have exceeded your budget of $" + curr_month_budget + " this month. 😧 Try to limit your expenditure to a minimum from now on and try harder to keep within your budget next month!"
+        elif perc_used == 100:
+            res = "\n❗️❗️❗️ You have hit your budget of $" + curr_month_budget + " this month. 😧 Try to limit your expenditure to a minimum from now on and try harder to keep within your budget next month!"
+        elif perc_used >= 90:
+            amt_left = (Decimal(curr_month_budget) - Decimal(curr_monthly_exp)).quantize(Decimal('1.00'))
+            res = "\n❗️❗️ You have spent beyond 90% of your budget of $" + curr_month_budget + " this month. 😧 Try not to exceed your budget this month!\nYou have $" + str(amt_left) + " of your budget left. Spend wisely!"
+        else:
+            res = ""
+    else:
+        res = "\nReminder! You have not set your budget this month. Like that how to manage your finances? Go set your budget now! 🤑"
+    return res
+                                                                                                                    
 def process_food(message):
     chat_id = message.from_user.id
     bot.send_chat_action(chat_id=chat_id, action="Typing")
@@ -299,7 +317,8 @@ def process_food(message):
         dt = datetime.utcfromtimestamp(unix_date)
         year_month = str(dt.year) + str(dt.month)
         dbhelper.add_daily_exp(dt, 'FOOD', amount, chat_id, year_month)
-        bot.send_message(chat_id=chat_id, text="You spent $" + amount + " on food today. Don't spend too much on junk food okay!", reply_markup=promotions_button)
+        warning_msg = spending_warning(chat_id, year_month)
+        bot.send_message(chat_id=chat_id, text="You spent $" + amount + " on food today. Don't spend too much on junk food okay!" + warning_msg, reply_markup=promotions_button)
         bot.register_next_step_handler(message, process_daily_expenditure)
     else:
         bot.send_message(chat_id=chat_id, text="Input your budget for food properly leh 🤨")
@@ -314,7 +333,8 @@ def process_clothes(message):
         dt = datetime.utcfromtimestamp(unix_date)
         year_month = str(dt.year) + str(dt.month)
         dbhelper.add_daily_exp(dt, 'CLOTHES', amount, chat_id, year_month)
-        bot.send_message(chat_id=chat_id, text="You spent $" + amount + " on clothes today. Don't buy excessively okay!", reply_markup=promotions_button)
+        warning_msg = spending_warning(chat_id, year_month)
+        bot.send_message(chat_id=chat_id, text="You spent $" + amount + " on clothes today. Don't buy excessively okay!" + warning_msg, reply_markup=promotions_button)
         bot.register_next_step_handler(message, process_daily_expenditure)
     else:
         bot.send_message(chat_id=chat_id, text="Input your budget for clothes properly leh 🤨")
@@ -329,7 +349,8 @@ def process_transport(message):
         dt = datetime.utcfromtimestamp(unix_date)
         year_month = str(dt.year) + str(dt.month)
         dbhelper.add_daily_exp(dt, 'TRANSPORT', amount, chat_id, year_month)
-        bot.send_message(chat_id=chat_id, text="You spent $" + amount + " on transport today. Travel cheaply via public transport okay!", reply_markup=promotions_button)
+        warning_msg = spending_warning(chat_id, year_month)
+        bot.send_message(chat_id=chat_id, text="You spent $" + amount + " on transport today. Travel cheaply via public transport okay!" + warning_msg, reply_markup=promotions_button)
         bot.register_next_step_handler(message, process_daily_expenditure)
     else:
         bot.send_message(chat_id=chat_id, text="Input your budget for transport properly leh 🤨")
@@ -344,7 +365,8 @@ def process_necessities(message):
         dt = datetime.utcfromtimestamp(unix_date)
         year_month = str(dt.year) + str(dt.month)
         dbhelper.add_daily_exp(dt, 'NECESSITIES', amount, chat_id, year_month)
-        bot.send_message(chat_id=chat_id, text="You spent $" + amount + " on daily necessities today. Remember to buy only what you need!",reply_markup=promotions_button)
+        warning_msg = spending_warning(chat_id, year_month)
+        bot.send_message(chat_id=chat_id, text="You spent $" + amount + " on daily necessities today. Remember to buy only what you need!" + warning_msg,reply_markup=promotions_button)
         bot.register_next_step_handler(message, process_daily_expenditure)
     else:
         bot.send_message(chat_id=chat_id, text="Input your budget for daily necessities properly leh 🤨")
@@ -359,18 +381,12 @@ def process_others(message):
         dt = datetime.utcfromtimestamp(unix_date)
         year_month = str(dt.year) + str(dt.month)
         dbhelper.add_daily_exp(dt, 'OTHERS', amount, chat_id, year_month)
-        bot.send_message(chat_id=chat_id, text="You spent $" + amount + " on others today. Remember to spend within your budget!", reply_markup=promotions_button)
+        warning_msg = spending_warning(chat_id, year_month)
+        bot.send_message(chat_id=chat_id, text="You spent $" + amount + " on others today. Remember to spend within your budget!" + warning_msg, reply_markup=promotions_button)
         bot.register_next_step_handler(message, process_daily_expenditure)
     else:
         bot.send_message(chat_id=chat_id, text="Input your budget for 'others' properly leh 🤨")
         bot.register_next_step_handler(message, process_others)
-
-def convert_str(amt):
-    try:
-        res = float(amt)
-        return res                    
-    except ValueError as e:
-        return int(amt)
 
 def process_records(message):
     chat_id = message.from_user.id
