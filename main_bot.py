@@ -646,6 +646,7 @@ def process_socialite(message):
         bot.register_next_step_handler(message, remind_friend)
     else:
         bot.send_message(chat_id=chat_id, text="Don't want to interact with your friends? Explore other features at /main!", reply_markup=types.ReplyKeyboardRemove())
+
 def challenge_friend(message):
     chat_id = message.from_user.id
     bot.send_chat_action(chat_id=chat_id, action="Typing")
@@ -653,22 +654,27 @@ def challenge_friend(message):
     if msg.lower() == 'exit':
         bot.send_message(chat_id=chat_id, text="Press /main to explore other features at main menu.")
     else:
-    #TODO
-        #i think need try except here?
         arr = msg.split(",")
-        #arr[0] is the friend's number, arr[1] is the amount
-        ##TO CHECK IN DATABASE
-        if numberisindatabase:
-            if is_float(arr[1]):
-                ###ENTER THE AMOUNT IN DATABASE
-                ###EXTRACT THE CHAT_ID AND SEND TO THE FRIEND THE CHALLENGE
-                bot.send_message(chat_id=chat_id, text="You have successfully challenged your friend!👍 Let's hope your friend can succeed the challenge. Meanwhile, explore other features at /main!")
+        try: 
+            friend_number, amt = arr[0], arr[1]
+            if dbhelper.is_user_stored(friend_number):
+                if is_float(arr[1]):
+                    unix_date = int(message.date)
+                    dt = datetime.utcfromtimestamp(unix_date)
+                    year_month = str(dt.year) + str(dt.month)
+                    friend_chat_id = dbhelper.get_user_id(friend_number)
+                    dbhelper.add_challenge(dt, year_month, chat_id, friend_chat_id, amt)
+                    bot.send_message(chat_id=friend_chat_id, text="Challenge Accepted!👌Are you up to face the challenge issued by " + username + "? You have been challenged to spend only $"+ amt +" this month!😣 Do your best and prove that YOU are the saving guru to "+ username + "! Do explore the Promotions feature at /main to help you! 🙃 ")
+                    bot.send_message(chat_id=chat_id, text="You have successfully challenged your friend!👍 Let's hope your friend can succeed the challenge. Meanwhile, explore other features at /main!")
+                else:
+                    bot.send_message(chat_id=chat_id, text="Key in the amount properly leh.🤨 If you think your friend confirm cmi and don't want to challenge anymore, type 'exit'.")
+                    bot.register_next_step_handler(message, challenge_friend)
             else:
-                bot.send_message(chat_id=chat_id, text="Key in the amount properly leh.🤨 If you think your friend confirm cmi and don't want to challenge anymore, type 'exit'.")
-                bot.register_next_step_handler(message, challenge_friend)
-        else:
-            body = "Unfortunately, the contact that you keyed in is not in our database.😪 Get your friend to use 'Saving for Rainy Days' today and activate the $ocialite feature to interact with your friends!😀 For now, explore other features at /main!"
-            bot.send_message(chat_id=chat_id, text=body)
+                body = "Unfortunately, the contact that you keyed in is not in our database.😪 Get your friend to use 'Saving for Rainy Days' today and activate the $ocialite feature to interact with your friends!� For now, explore other features at /main!"
+                bot.send_message(chat_id=chat_id, text=body)
+        except IndexError:
+            bot.send_message(chat_id=chat_id, text="Key in the number and amount properly leh.🤨 If you think your friend confirm cmi and don't want to challenge anymore, type 'exit'. Otherwise, please input in the following format: “+[country code][number],[amount]”. \nE.g. if your friend’s number is 91234567 and his/her country code is 65 and the amount to challenge is $300, then key in +6591234567,300. Do check before keying in and do not leave any spacing.🙂")
+            bot.register_next_step_handler(message, challenge_friend)
 
 def remind_friend(message):
     chat_id = message.from_user.id
