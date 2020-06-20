@@ -20,6 +20,7 @@ class DBHelper:
         dbcursor.execute('''CREATE TABLE IF NOT EXISTS monthly_savings (date_time DATE NOT NULL, year_month INTEGER NOT NULL, user_id INTEGER NOT NULL, amount TEXT NOT NULL, type_savings TEXT NOT NULL, PRIMARY KEY(date_time, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id))''')
         dbcursor.execute('''CREATE TABLE IF NOT EXISTS iou (user_id_debtor INTEGER NOT NULL, name_debtee TEXT NOT NULL, amount TEXT NOT NULL, PRIMARY KEY(user_id_debtor, name_debtee), FOREIGN KEY(user_id_debtor) REFERENCES users(user_id))''')
         dbcursor.execute('''CREATE TABLE IF NOT EXISTS uome (user_id_debtee INTEGER NOT NULL, name_debtor TEXT NOT NULL, amount TEXT NOT NULL, PRIMARY KEY(user_id_debtee, name_debtor), FOREIGN KEY(user_id_debtee) REFERENCES users(user_id))''')
+        dbcursor.execute('''CREATE TABLE IF NOT EXISTS challenges (date_time DATE NOT NULL, year_month INTEGER NOT NULL, user_id_challenger INTEGER NOT NULL, user_id_challenged INTEGER NOT NULL, amount TEXT NOT NULL, PRIMARY KEY(date_time, user_id_challenger, user_id_challenged), FOREIGN KEY(user_id_challenged) REFERENCES users(user_id), FOREIGN KEY(year_month, user_id_challenged) REFERENCES monthly_exp(year_month, user_id))''')
         db.commit()
         dbcursor.close()
 
@@ -581,3 +582,58 @@ class DBHelper:
             return []
         finally:
             dbcursor.close() 
+
+    def add_challenge(self, date_time, year_month, user_id_challenger, user_id_challenged, amount):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''INSERT INTO challenges (date_time, year_month, user_id_challenger, user_id_challenged, amount) VALUES (?, ?, ?, ?, ?)'''
+        args = (date_time, year_month, user_id_challenger, user_id_challenged, amount, )
+        dbcursor.execute(stmt, args)
+        db.commit()
+        dbcursor.close()
+        
+    def get_challenge_amount(self, user_id_challenger, user_id_challenged, year_month):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT amount FROM challenges WHERE user_id_challenger = ? AND user_id_challenged = ? AND year_month = ?'''
+        args = (user_id_challenger, user_id_challenged, year_month, )
+        dbcursor.execute(stmt, args)
+        record = dbcursor.fetchone()
+        dbcursor.close()
+        return Decimal(record[0])
+    
+    def is_challenge_successful(self, user_id_challenger, user_id_challenged, year_month):
+        challenge_amount = self.get_challenge_amount(user_id_challenger, user_id_challenged, year_month)
+        monthly_exp = self.get_monthly_exp(user_id_challenged, year_month)
+        if is_float(monthly_exp):
+            if Decimal(monthly_exp) <= challenge_amount:
+                return "success"
+            else:
+                return "fail"
+        else:
+            return "monthly expenditure not keyed in"
+        
+    def get_all_challenges(self):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT user_id_challenger, user_id_challenged FROM challenges'''
+        try:
+            dbcursor.execute(stmt)
+            records = dbcursor.fetchall()
+            res = []
+            for row in records:
+                res.append((row[0], row[1], ))
+            return res
+        except sqlite3.DatabaseError:
+            return []
+        finally:
+            dbcursor.close() 
+            
+    def remove_challenge(self, user_id_challenger, user_id_challenged, year_month):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''DELETE FROM challenges WHERE user_id_challenger = ? AND user_id_challenged = ? AND year_month = ?'''
+        args = (user_id_challenger, user_id_challenged, year_month, )
+        dbcursor.execute(stmt, args)
+        db.commit()
+        dbcursor.close()    
