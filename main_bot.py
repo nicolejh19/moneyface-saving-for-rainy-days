@@ -663,10 +663,15 @@ def challenge_friend(message):
                     dt = datetime.utcfromtimestamp(unix_date)
                     year_month = str(dt.year) + str(dt.month)
                     friend_chat_id = dbhelper.get_user_id(friend_number)
-                    dbhelper.add_challenge(dt, year_month, chat_id, friend_chat_id, amt)
-                    bot.send_message(chat_id=friend_chat_id, text="Challenge Accepted!👌Are you up to face the challenge issued by " + username + "? You have been challenged to spend only $"+ amt +" this month!😣 Do your best and prove that YOU are the saving guru to "+ username + "! Do explore the Promotions feature at /main to help you! 🙃 ")
-                    bot.send_message(chat_id=chat_id, text="You have successfully challenged your friend!👍 Let's hope your friend can succeed the challenge. Meanwhile, explore other features at /main!")
-                else:
+                    friend_name = dbhelper.get_username(friend_chat_id)
+                    flag = dbhelper.add_challenge(year_month, chat_id, friend_chat_id, amt)
+                    if flag: 
+                        bot.send_message(chat_id=friend_chat_id, text="Challenge Accepted!👌Are you up to face the challenge issued by " + username + "? You have been challenged to spend only $"+ amt +" this month!😣 Do your best and prove that YOU are the saving guru to "+ username + "! Do explore the Promotions feature to help you! 🙃 ")
+                        bot.send_message(chat_id=chat_id, text="You have successfully challenged your friend!👍 Let's hope your friend can succeed the challenge.",reply_markup=socialite_button)
+                    else:
+                        bot.send_message(chat_id=chat_id, text="You already challenged " + friend_name + " to spend $" + amt + " for this month leh... Can give your friend a break and re-challenge next month again? 🙃Meanwhile you also up your game to be the saving guru by tracking your spendings can?", reply_markup=socialite_button)
+                    bot.register_next_step_handler(message, process_socialite)
+               else:
                     bot.send_message(chat_id=chat_id, text="Key in the amount properly leh.🤨 If you think your friend confirm cmi and don't want to challenge anymore, type 'exit'.")
                     bot.register_next_step_handler(message, challenge_friend)
             else:
