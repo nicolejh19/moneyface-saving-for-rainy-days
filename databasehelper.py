@@ -586,7 +586,7 @@ class DBHelper:
     def add_challenge(self, year_month, user_id_challenger, user_id_challenged, amount):
         db = sqlite3.connect(self.dbname)
         dbcursor = db.cursor()
-        stmt = '''INSERT INTO challenges (year_month, user_id_challenger, user_id_challenged, amount) VALUES (?, ?, ?, ?, ?)'''
+        stmt = '''INSERT INTO challenges (year_month, user_id_challenger, user_id_challenged, amount) VALUES (?, ?, ?, ?)'''
         args = (year_month, user_id_challenger, user_id_challenged, amount, )
         try:
             dbcursor.execute(stmt, args)
