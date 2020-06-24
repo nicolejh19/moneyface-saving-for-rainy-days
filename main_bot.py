@@ -831,7 +831,51 @@ def schedule_checker():
         schedule.run_pending()
         sleep(10)
 
-#Monthly reminder with pie chart for spendings for that month
+def get_savings_msg(past_month_savings):
+    if is_float(past_month_savings):
+        savings_msg = "$" + past_month_savings
+    else:
+        savings_msg = "No records of savings last month"
+    return savings_msg
+
+def get_ave_savings_msg(average_savings):
+    if average_savings != 0:
+        ave_savings_msg = "$" + str(average_savings)
+    else:
+        ave_savings_msg = "No history of savings available"
+    return ave_savings_msg
+
+def get_budget_msg(past_month_budget):
+    if is_float(past_month_budget):
+        budget_msg = "$" + past_month_budget
+    else:
+        budget_msg = "No budget set last month"
+    return budget_msg
+
+def get_succ_or_fail_msg(past_month_budget, past_month_exp):
+    if is_float(past_month_budget) and is_float(past_month_exp):
+        if Decimal(past_month_exp) <= Decimal(past_month_budget):
+            succ_or_fail_msg = "\n🥳 Congrats! You successfully kept within budget last month!"
+        else:
+            succ_or_fail_msg = "\n😔 You did not manage to spend within budget last month. Try harder this month! 💪🏻"
+    else:
+        succ_or_fail_msg = ""
+    return succ_or_fail_msg
+
+def get_exp_msg(past_month_exp):
+    if is_float(past_month_exp): 
+        exp_msg = "$" + past_month_exp 
+    else:
+        exp_msg = "No records of expenditure last month"
+    return exp_msg
+
+def get_ave_exp_msg(average_exp):
+    if not is_float(average_exp):
+        ave_exp_msg = "No history of expenditure available"
+    else:
+        ave_exp_msg = "$" + average_exp
+    return ave_exp_msg
+
 def monthly():
     if date.today().day == 1:
         list_of_users = dbhelper.get_all_users()
@@ -841,28 +885,16 @@ def monthly():
             past_month_savings = dbhelper.get_current_savings(year_month, i)
             past_month_budget = dbhelper.get_monthly_budget(year_month, i)
             average_savings = dbhelper.get_average_monthly_savings(i)
-            if is_float(past_month_savings):
-                savings_msg = "$" + past_month_savings
-            else:
-                savings_msg = "No records of savings last month"
-            if average_savings != 0:
-                ave_savings_msg = "$" + str(average_savings)
-            else:
-                ave_savings_msg = "No history of savings available"
-            if is_float(past_month_budget):
-                budget_msg = "$" + past_month_budget
-            else:
-                budget_msg = "No budget set last month"
+            savings_msg = get_savings_msg(past_month_savings)
+            ave_savings_msg = get_ave_savings_msg(average_savings)
+            budget_msg = get_budget_msg(past_month_budget)
+            succ_or_fail_msg = get_succ_or_fail_msg(past_month_budget, past_month_exp)
+            exp_msg = get_exp_msg(past_month_exp)
+            average_exp = dbhelper.get_average_monthly_exp(i)
+            ave_exp_msg = get_ave_exp_msg(average_exp)
+            default_msg = "It is a new month!🤗 Start planning for your monthly savings and budget. Here's a summary of your savings and spendings last month:\n🗓 Monthly savings: " + savings_msg + "\n🗓 Average monthly savings: " + ave_savings_msg + "\n🗓 Monthly budget: " + budget_msg + "\n🗓 Monthly expenditure: " + exp_msg + "\n🗓 Average monthly expenditure: " + ave_exp_msg 
             if is_float(past_month_exp): ### GOT PAST MONTH EXPENDITURE ###
-                exp_msg = "$" + past_month_exp + "\n"
-                if is_float(past_month_budget):
-                    if Decimal(past_month_exp) <= Decimal(past_month_budget):
-                        succ_or_fail_msg = "🥳 Congrats! You successfully kept within budget last month!"
-                    else:
-                        succ_or_fail_msg = "😔 You did not manage to spend within budget last month. Try harder this month! 💪🏻"
                 flag = dbhelper.add_monthly_exp(i, year_month)
-                average_exp = dbhelper.get_average_monthly_exp(i)
-                ave_exp_msg = "$" + average_exp
                 total_spending = float(past_month_exp)
                 curr_food_exp = float(dbhelper.get_monthly_category_exp(i, year_month, 'FOOD'))
                 curr_clothes_exp = float(dbhelper.get_monthly_category_exp(i, year_month, 'CLOTHES'))
@@ -876,20 +908,14 @@ def monthly():
                 others = (curr_others_exp / total_spending) * 100
                 monthly = chart()
                 spent_most = monthly.make_piechart(food, clothes, transport, necc, others)
-                default_msg = "It is a new month!🤗 Start planning for your monthly savings and budget. Here's a summary of your savings and spendings last month:\n🗓 Monthly savings: " + savings_msg + "\n🗓 Average monthly savings: " + ave_savings_msg + "\n🗓 Monthly budget: " + budget_msg + "\n🗓 Monthly expenditure: " + exp_msg + succ_or_fail_msg + "\n🗓 Average monthly expenditure: " + ave_exp_msg + "\n🗓 Category with highest spendings: " + spent_most
+                default_msg += "\n🗓 Category with highest spendings: " + spent_most + succ_or_fail_msg
                 bot.send_message(chat_id=i, text=default_msg)
-                bot.send_photo(chat_id=i, photo=open('.../monthly.png' ,'rb')) #get path 
+                bot.send_photo(chat_id=i, photo=open('/Users/User/Downloads/Orbital/Versions/monthly.png' ,'rb'))  
             else:
-                exp_msg = "No records of expenditure last month"
-                succ_or_fail_msg = ""
-                cat_msg = ""
-                if not is_float(average_exp):
-                    ave_exp_msg = "No history of expenditure available"
                 bot.send_message(chat_id=i, text=default_msg)
     else:
         return
 
-#Daily reminder to user to key in daily spendings
 def send_daily():
     list_of_users = dbhelper.get_all_users()
     for i in list_of_users:
