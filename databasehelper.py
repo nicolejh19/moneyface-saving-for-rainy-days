@@ -14,13 +14,13 @@ class DBHelper:
         db = sqlite3.connect(self.dbname)
         dbcursor = db.cursor()
         dbcursor.execute('''CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, phone_number TEXT DEFAULT "NORECORD" NOT NULL, username TEXT NOT NULL)''')
-        dbcursor.execute('''CREATE TABLE IF NOT EXISTS monthly_budget (year_month INTEGER NOT NULL, user_id INTEGER NOT NULL, amount TEXT NOT NULL, PRIMARY KEY(year_month, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id))''')
-        dbcursor.execute('''CREATE TABLE IF NOT EXISTS daily_exp (date_time DATE NOT NULL, category TEXT NOT NULL, amount TEXT NOT NULL, user_id INTEGER NOT NULL, year_month INTEGER NOT NULL, PRIMARY KEY (date_time, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id), FOREIGN KEY(year_month, user_id) REFERENCES monthly_budget(year_month, user_id))''')
-        dbcursor.execute('''CREATE TABLE IF NOT EXISTS monthly_exp (year_month INTEGER NOT NULL, user_id INTEGER NOT NULL, amount TEXT NOT NULL, within_budget INTEGER NOT NULL, PRIMARY KEY(year_month, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id), FOREIGN KEY(year_month, user_id) REFERENCES monthly_budget(year_month, user_id))''')
-        dbcursor.execute('''CREATE TABLE IF NOT EXISTS monthly_savings (date_time DATE NOT NULL, year_month INTEGER NOT NULL, user_id INTEGER NOT NULL, amount TEXT NOT NULL, type_savings TEXT NOT NULL, PRIMARY KEY(date_time, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id))''')
+        dbcursor.execute('''CREATE TABLE IF NOT EXISTS monthly_budget (year_month TEXT NOT NULL, user_id INTEGER NOT NULL, amount TEXT NOT NULL, PRIMARY KEY(year_month, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id))''')
+        dbcursor.execute('''CREATE TABLE IF NOT EXISTS daily_exp (date_time DATE NOT NULL, category TEXT NOT NULL, amount TEXT NOT NULL, user_id INTEGER NOT NULL, year_month TEXT NOT NULL, PRIMARY KEY (date_time, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id), FOREIGN KEY(year_month, user_id) REFERENCES monthly_budget(year_month, user_id))''')
+        dbcursor.execute('''CREATE TABLE IF NOT EXISTS monthly_exp (year_month TEXT NOT NULL, user_id INTEGER NOT NULL, amount TEXT NOT NULL, within_budget INTEGER NOT NULL, PRIMARY KEY(year_month, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id), FOREIGN KEY(year_month, user_id) REFERENCES monthly_budget(year_month, user_id))''')
+        dbcursor.execute('''CREATE TABLE IF NOT EXISTS monthly_savings (date_time DATE NOT NULL, year_month TEXT NOT NULL, user_id INTEGER NOT NULL, amount TEXT NOT NULL, type_savings TEXT NOT NULL, PRIMARY KEY(date_time, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id))''')
+        dbcursor.execute('''CREATE TABLE IF NOT EXISTS challenges (year_month TEXT NOT NULL, user_id_challenger INTEGER NOT NULL, user_id_challenged INTEGER NOT NULL, amount TEXT NOT NULL, PRIMARY KEY(year_month, user_id_challenger, user_id_challenged), FOREIGN KEY(user_id_challenged) REFERENCES users(user_id), FOREIGN KEY(year_month, user_id_challenged) REFERENCES monthly_exp(year_month, user_id))''')
         dbcursor.execute('''CREATE TABLE IF NOT EXISTS iou (user_id_debtor INTEGER NOT NULL, name_debtee TEXT NOT NULL, amount TEXT NOT NULL, PRIMARY KEY(user_id_debtor, name_debtee), FOREIGN KEY(user_id_debtor) REFERENCES users(user_id))''')
-        dbcursor.execute('''CREATE TABLE IF NOT EXISTS uome (user_id_debtee INTEGER NOT NULL, name_debtor TEXT NOT NULL, amount TEXT NOT NULL, PRIMARY KEY(user_id_debtee, name_debtor), FOREIGN KEY(user_id_debtee) REFERENCES users(user_id))''')
-        dbcursor.execute('''CREATE TABLE IF NOT EXISTS challenges (year_month INTEGER NOT NULL, user_id_challenger INTEGER NOT NULL, user_id_challenged INTEGER NOT NULL, amount TEXT NOT NULL, PRIMARY KEY(year_month, user_id_challenger, user_id_challenged), FOREIGN KEY(user_id_challenged) REFERENCES users(user_id), FOREIGN KEY(year_month, user_id_challenged) REFERENCES monthly_exp(year_month, user_id))''')
+        dbcursor.execute('''CREATE TABLE IF NOT EXISTS uome (user_id_debtee INTEGER NOT NULL, name_debtor TEXT NOT NULL, amount TEXT NOT NULL, PRIMARY KEY(user_id_debtee, name_debtor), FOREIGN KEY(user_id_debtee) REFERENCES users(user_id))''')                                                                
         db.commit()
         dbcursor.close()
 
@@ -124,6 +124,17 @@ class DBHelper:
         finally:
             dbcursor.close()
 
+    ## FOR TESTING ONLY 
+    def test_add_monthly_budget(self, amount, user_id):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        year_month = "20205"
+        stmt = '''INSERT INTO monthly_budget (year_month, amount, user_id) VALUES (?, ?, ?)'''
+        args = (year_month, amount, user_id, )
+        dbcursor.execute(stmt, args)
+        db.commit()
+        dbcursor.close()
+    
     def get_monthly_budget(self, year_month, user_id):
         db = sqlite3.connect(self.dbname)
         dbcursor = db.cursor()
@@ -141,6 +152,18 @@ class DBHelper:
     def add_daily_exp(self, date_time, category, amount, user_id, year_month):
         db = sqlite3.connect(self.dbname)
         dbcursor = db.cursor()
+        stmt = '''INSERT INTO daily_exp (date_time, category, amount, user_id, year_month) VALUES (?, ?, ?, ?, ?)'''
+        args = (date_time, category, amount, user_id, year_month, )
+        dbcursor.execute(stmt, args)
+        db.commit()
+        dbcursor.close()
+
+    ## FOR TESTING ONLY
+    def test_add_daily_exp(self, category, amount, user_id, unix_date):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        year_month = "20205"
+        date_time = datetime.utcfromtimestamp(unix_date)
         stmt = '''INSERT INTO daily_exp (date_time, category, amount, user_id, year_month) VALUES (?, ?, ?, ?, ?)'''
         args = (date_time, category, amount, user_id, year_month, )
         dbcursor.execute(stmt, args)
@@ -209,35 +232,32 @@ class DBHelper:
             return False
         finally:
             dbcursor.close()
-    
+
     ## FOR TESTING ONLY 
-    def test_add_past_month_exp(self):
+    def test_add_past_month_exp(self, user_id, amount):
         db = sqlite3.connect(self.dbname)
         dbcursor = db.cursor()
         stmt = '''INSERT INTO monthly_exp (year_month, amount, user_id, within_budget) VALUES (?, ?, ?, ?)'''
         year_month = "20205"
-        amount = "30"
-        user_id = "INSERT USER ID HERE"
         within_budget = 1 
         args = (year_month, amount, user_id, within_budget, )
         dbcursor.execute(stmt, args)
         db.commit()
         dbcursor.close()
         
-    ## FOR TESTING ONLY 
-    def test_2_for_exp(self):
+    ## FOR TESTING ONLY
+    def test_2_for_exp(self, user_id):
         db = sqlite3.connect(self.dbname)
         dbcursor = db.cursor()
         stmt = '''INSERT INTO monthly_exp (year_month, amount, user_id, within_budget) VALUES (?, ?, ?, ?)'''
         year_month = "20204"
-        amount = "50"
-        user_id = "INSERT USER ID HERE"
+        amount = "200"
         within_budget = 0
         args = (year_month, amount, user_id, within_budget, )
         dbcursor.execute(stmt, args)
         db.commit()
         dbcursor.close()
-
+        
     def get_average_monthly_exp(self, user_id):
         db = sqlite3.connect(self.dbname)
         dbcursor = db.cursor()
@@ -596,7 +616,18 @@ class DBHelper:
             return False
         finally:
             dbcursor.close()
-       
+    
+    ## USE FOR TESTING ONLY 
+    def test_add_challenge(self, user_id_challenger, user_id_challenged, amount):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        year_month = "20205"
+        stmt = '''INSERT INTO challenges (year_month, user_id_challenger, user_id_challenged, amount) VALUES (?, ?, ?, ?)'''
+        args = (year_month, user_id_challenger, user_id_challenged, amount, )
+        dbcursor.execute(stmt, args)
+        db.commit()
+        dbcursor.close()
+
     def get_challenge_amount(self, user_id_challenger, user_id_challenged, year_month):
         db = sqlite3.connect(self.dbname)
         dbcursor = db.cursor()
@@ -634,6 +665,23 @@ class DBHelper:
         finally:
             dbcursor.close() 
             
+    ## USE FOR TESTING ONLY
+    def test_all_challenges(self):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT user_id_challenger, user_id_challenged, amount, year_month FROM challenges'''
+        try:
+            dbcursor.execute(stmt)
+            records = dbcursor.fetchall()
+            res = []
+            for row in records:
+                res.append((row[0], row[1], row[2], row[3]))
+            return res
+        except sqlite3.DatabaseError:
+            return []
+        finally:
+            dbcursor.close() 
+
     def remove_challenge(self, user_id_challenger, user_id_challenged, year_month):
         db = sqlite3.connect(self.dbname)
         dbcursor = db.cursor()
@@ -641,4 +689,13 @@ class DBHelper:
         args = (user_id_challenger, user_id_challenged, year_month, )
         dbcursor.execute(stmt, args)
         db.commit()
-        dbcursor.close()    
+        dbcursor.close()  
+
+    ## USE FOR TESTING ONLY 
+    def test_monthly_overview_1(self):
+        self.test_add_past_month_savings("INSERT USER ID", "200")
+        self.test_add_monthly_budget("300", "INSERT USER ID") 
+        self.test_2_for_exp("INSERT USER ID")
+        self.test_add_daily_exp("FOOD", "50", "INSERT USER ID", 1589979600)
+        self.test_add_daily_exp("CLOTHES", "30", "INSERT USER ID", 1589551200)
+        self.test_add_daily_exp("TRANSPORT", "20", "INSERT USER ID", 1589122800)
