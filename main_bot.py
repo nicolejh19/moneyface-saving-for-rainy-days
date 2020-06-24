@@ -877,6 +877,7 @@ def get_ave_exp_msg(average_exp):
     return ave_exp_msg
 
 def monthly():
+    # dbhelper.test_monthly_overview_1()
     if date.today().day == 1:
         list_of_users = dbhelper.get_all_users()
         year_month = str(date.today().year) + str(date.today().month - 1)
@@ -916,14 +917,47 @@ def monthly():
     else:
         return
 
+def monthly_challenges():
+    # dbhelper.test_add_challenge("INSERT USER ID", "INSERT USER ID", "300")            
+    # dbhelper.test_add_challenge("INSERT USER ID", "INSERT USER ID", "90")
+    # test_c = dbhelper.test_all_challenges()
+    # for i in test_c:
+    #     print("challenger: " + str(i[0]) + " challenged: " + str(i[1]) + " amount: " + i[2] + " in: " + i[3])
+    if date.today().day == 1:
+        list_challenges = dbhelper.get_all_challenges()
+        year_month = str(date.today().year) + str(date.today().month - 1)
+        for i in list_challenges:
+            user_id_challenger, user_id_challenged = i[0], i[1]
+            challenger_name = dbhelper.get_username(user_id_challenger)
+            challenged_name = dbhelper.get_username(user_id_challenged)
+            str_outcome = dbhelper.is_challenge_successful(i[0], i[1], year_month)
+            challenge_amount = str(dbhelper.get_challenge_amount(user_id_challenger, user_id_challenged, year_month))
+            if str_outcome == "success":
+                bot.send_message(chat_id=user_id_challenged, text="Congratulations " + challenged_name + "!🎊 You have successfully completed the challenge to spend within a budget of $" + challenge_amount + " issued by " + challenger_name + ". We have already flaunted your achievement to " + challenger_name + " to let him/her know that YOU are the saving guru!🎉")
+                bot.send_message(chat_id=user_id_challenger, text="Yo " + challenger_name + "!🤠 Remember the challenge that you issued to " + challenged_name + " to spend within a budget of $" + challenge_amount + " last month? " + challenged_name + " has successfully completed your challenge and is crowned as the saving guru!🎉 Maybe you can ask him/her for tips on how to save more and spend less?😉")
+            elif str_outcome == "fail":
+                bot.send_message(chat_id=user_id_challenged, text="Oh no!😣 You have failed the challenge to spend within a budget of $" + challenge_amount + " issued by " + challenger_name + ". It's okay, just manage your spendings and savings better next month! You can check out the Promotions feature to help you save a bit more while you spend! 💪") 
+                bot.send_message(chat_id=user_id_challenger, text="Yo " + challenger_name + "!🤠 Remember the challenge that you issued to " + challenged_name + " to spend within a budget of $" + challenge_amount + " last month? " + "Sadly, he/she has failed the challenge.😩 Do you have any good tips to help your friend to spend lesser?")
+            elif str_outcome == "monthly expenditure not keyed in":
+                bot.send_message(chat_id=user_id_challenged, text="Remember the challenge to spend within a budget of $" + challenge_amount + " issued by " + challenger_name + "? Sadly, you did not track your monthly expenditure and we are unable to determine if you are up for the challenge.😢 Maybe start tracking your spendings and savings in the new month?😉") 
+                bot.send_message(chat_id=user_id_challenger, text="Yo " + challenger_name + "!🤠 Remember the challenge that you issued to " + challenged_name + " to spend within a budget of $" + challenge_amount + " last month? " + "Sigh, your friend did not track his/her spendings at all so we are not sure if he/she succeeded the challenge.😢 Maybe you can urge your friend to start managing his/her finances in the new month?😉")
+            dbhelper.remove_challenge(user_id_challenger, user_id_challenged, year_month)
+        # test_c = dbhelper.test_all_challenges()
+        # print("\nsecond for loop")
+        # for i in test_c:
+        #     print("challenger: " + str(i[0]) + " challenged: " + str(i[1]) + " amount: " + i[2] + " in: " + i[3])
+    else:
+        return
+
 def send_daily():
     list_of_users = dbhelper.get_all_users()
     for i in list_of_users:
         bot.send_message(chat_id= i, text="Reminder: Have you keyed in your expenditure (if any) for today? 🤔 \nTracking your expenses and savings consistently helps you manage your finances better!")
 
 while True:
-    schedule.every().day.at("16:04").do(send_daily) 
-    schedule.every().day.at("00:00").do(monthly)
+    schedule.every().day.at("21:00").do(send_daily) 
+    schedule.every().day.at("09:00").do(monthly)
+    schedule.every().day.at("10:00").do(monthly_challenges)
     Thread(target=schedule_checker).start()
     try:
         bot.polling(none_stop=True)
