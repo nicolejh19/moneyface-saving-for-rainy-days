@@ -83,7 +83,7 @@ def main(message):
     username = message.from_user.first_name
     bot.send_chat_action(chat_id=chat_id, action="Typing")
     main_text = "Hi " + username + "! Welcome to the main menu of Saving for Rainy Days! 😊"
-    bot.send_message(chat_id=chat_id, text=main_text,reply_markup=main_menu_buttons,parse_mode="Markdown")
+    bot.send_message(chat_id=chat_id, text=main_text,reply_markup=main_menu_buttons)
     bot.clear_step_handler(message)
     bot.register_next_step_handler(message, process_next_step)
 
@@ -130,8 +130,8 @@ def process_my_savings(message):
     msg = message.text
     bot.clear_step_handler(message)
     if msg == 'Update':
-        text = "To input your monthly savings at the start of each month, select *Monthly Savings*.\n\nJust received some money from your generous aunt or just received your scholarship money? 😎Go to *Bonus Savings* to increase your savings! ^_^ "
-        bot.send_message(chat_id=chat_id, text=text, reply_markup=update_savings_button)
+        text = "To input your monthly savings at the start of each month, select *Monthly Savings* .\n\nJust received some money from your generous aunt or just received your scholarship money? 😎Go to *Bonus Savings* to increase your savings!"
+        bot.send_message(chat_id=chat_id, text=text, reply_markup=update_savings_button, parse_mode="Markdown")
         bot.register_next_step_handler(message, process_update_savings)
     elif msg == 'My Records':
         bot.send_message(chat_id=chat_id, text= "Do you want to check your current month savings or your savings history?", reply_markup=records_button)
@@ -202,7 +202,7 @@ def process_bonus_savings(message):
         bot.register_next_step_handler(message, process_update_savings)
     elif msg.lower() == 'exit':
         bot.send_message(chat_id=chat_id, text= "Exit", reply_markup=update_savings_button)
-        bot.register_next_step_handler(message, process_monthly_savings)
+        bot.register_next_step_handler(message, process_update_savings)
     else:
         bot.send_message(chat_id=chat_id, text="Input your bonus savings properly leh. If you don't want to check in any bonus savings hor, then type 'exit'.")
         bot.register_next_step_handler(message, process_bonus_savings)
@@ -233,7 +233,7 @@ def process_savings_records(message):
                 comparison = "\nYour savings for this month is the same as the average savings for the past months. Keep on saving!"
             else:
                 comparison = "\nYour savings for this month is below the average savings for the past months. Try to save more okay, you never know when there will be rainy days."
-            bot.send_message(chat_id=chat_id, text="Here's the statistics:\n🗓 Savings for the current month: $" + curr_savings + "\n🗓Average monthly savings: $" +  str(average_savings) + comparison)
+            bot.send_message(chat_id=chat_id, text="Here's the statistics:\n🗓 Savings for the current month: $" + curr_savings + "\n🗓 Average monthly savings: $" +  str(average_savings) + comparison)
         else:
             bot.send_message(chat_id=chat_id, text=curr_savings)
         bot.register_next_step_handler(message, process_savings_records)
@@ -482,7 +482,7 @@ def process_records(message):
                 warn_msg = "❗️ You have hit or exceeded 70% of your budget set for the month! 🤑 Be careful not to exceed your budget okay!"
             else:
                 warn_msg = ""
-            bot.send_message(chat_id=chat_id, text="Here's the statistics:\n🗓 Budget for this month: $" + curr_budget + "\n🗓 Total spending for this month: $" + curr_exp + "\n🗓 Category with highest spending: " + highest_cat + "\n🗓 Percentage of budget used: " + str(perc_budget_used) + "%\n" + warn_msg + "\nHere is a breakdown of your spendings this month as shown in the pie chart below.\n")
+            bot.send_message(chat_id=chat_id, text="Here's the statistics:\n🗓 Budget for this month: $" + curr_budget + "\n🗓 Total spending for this month: $" + curr_exp + "\n🗓 Category with highest spending: " + highest_cat + "\n🗓 Percentage of budget used: " + str(perc_budget_used) + "%\n" + warn_msg + "Here is a breakdown of your spendings this month as shown in the pie chart below.\n")
             bot.send_photo(chat_id=chat_id, photo=open('/.../current.png' ,'rb')) #get path
         bot.register_next_step_handler(message, process_records)
     elif msg == 'History':
@@ -733,7 +733,7 @@ def delete_debtor(message):
             contact = '+' + contact
         dbhelper.update_phone_number(chat_id, contact)
         body = "Great! 🥳 Select *Challenge Friend* to challenge your friend to spend within an amount for this month! 💪 Select *Remind Friend* to remind your friend to pay you back! 😑"
-        bot.send_message(chat_id=chat_id, text=body, reply_markup=socialite_button)
+        bot.send_message(chat_id=chat_id, text=body, reply_markup=socialite_button,parse_mode="Markdown"))
         bot.register_next_step_handler(message, process_socialite)
     except Exception as err:
         bot.send_message(chat_id=chat_id, text="Sending you back... 🙂", reply_markup=main_menu_buttons)
