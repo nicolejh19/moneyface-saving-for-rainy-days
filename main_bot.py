@@ -62,6 +62,12 @@ socialite_button.add(types.KeyboardButton('Challenge Friend'), types.KeyboardBut
 contact_button = types.ReplyKeyboardMarkup(resize_keyboard=True)
 contact_button.add(types.KeyboardButton(text='Share Contact', request_contact=True))
 
+settings_button = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+settings_button.add(types.KeyboardButton('Reminders'), types.KeyboardButton('Help'), types.KeyboardButton('Back'))
+
+opt_button = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+opt_button.add(types.KeyboardButton('Remind me hor'), types.KeyboardButton('Dunwan reminders'), types.KeyboardButton('Back'))
+
 def is_float(amt):
     try:
         temp = float(amt)
@@ -105,7 +111,7 @@ def process_next_step(message):
         bot.send_message(chat_id=chat_id, text=body, reply_markup=promo_button, parse_mode="Markdown")
         bot.register_next_step_handler(message, process_promotions)
     elif msg == 'Manage Debts':
-        body = "You have selected “Manage Debts”.🧾\nSelect *IOU* to update/review debtees and the amount YOU owe. Select *UOMe* to update/review your debtors and the amount THEY owe you. 💶"
+        body = "You have selected *Manage Debts*.🧾\nSelect *IOU* to update/review debtees and the amount YOU owe. Select *UOMe* to update/review your debtors and the amount THEY owe you. 💶"
         bot.send_message(chat_id=chat_id, text=body, reply_markup=debt_button, parse_mode="Markdown")
         bot.register_next_step_handler(message, process_debts)
     elif msg == '$ocialite':
@@ -117,10 +123,10 @@ def process_next_step(message):
             body = "To use this feature, we will require your contact. 📞 Please be assured that the information is used solely for engagement with your friends.🙂\nClick on the 'Share Contact' button below to share your contact with us. If you do not wish to share contact, type 'exit' to go back to main menu."
             bot.send_message(chat_id=chat_id, text=body, reply_markup=contact_button)
             bot.register_next_step_handler(message, extract_contact)
-    elif msg == 'Help':
-        body = "*How to use Saving for Rainy Days?*\nAt the start of each month, you will be required to plan your finances and key in your savings and budget that you have set aside for the month. \n\nHere’s a quick guide on our features:\n1) To update your savings and look at your saving records, select *Manage Savings*. Also, don’t forget to key in your monthly savings! Any bonus money received can also be checked in. 🥳\n\n2) Click *Manage Spendings* to update your daily spendings and monitor your spending history. 💸Remember to key in your monthly budget and update your daily expenditure!\n\n3) Select *Manage Debts* to track your lists of debtors and debtees easily. You can update the list accordingly.\n\n4) Select *Promotions* to check out the latest good deals in different categories.\n\n5) The *$ocialite* feature allows engagements with your friends via this bot!👨‍👩‍👧‍👦 Use this feature if you are too shy to ask your friend to pay you back (we help you do the dirty job)! You can also challenge your friend with his/her monthly spendings! However, please note that both you and your friends must have shared your contacts with the bot for this feature to work.\n\nWe will remind you daily to input your daily expenditure. Statistics on your finances for the month will be provided at the end of each month.😉 We hope you enjoy using the bot in managing your finances!"
-        bot.send_message(chat_id=chat_id, text=body, parse_mode="Markdown")
-        bot.register_next_step_handler(message, process_next_step)
+    elif msg == 'Settings':
+        body = "You have selected *Settings*.✅\nSelect *Reminders* to decide if you want to receive our reminders.📝 Select *Help* to learn how to use this bot.📖"
+        bot.send_message(chat_id=chat_id, text=body, reply_markup=settings_button, parse_mode="Markdown")
+        bot.register_next_step_handler(message, process_settings)
     else: 
         bot.send_message(chat_id, text= "Please note that our bot interacts with you mainly through the buttons.😅 Press /main to be redirected back to the main menu.", reply_markup= types.ReplyKeyboardRemove())
 
@@ -825,6 +831,47 @@ def remind_friend(message):
         except IndexError:
             bot.send_message(chat_id=chat_id, text="Key in the number and amount properly leh.🤨 If your friend already paid you back and no need to bug them anymore, type 'exit'.\nOtherwise, please input again in the following format: “+[country code][number],[amount]”. Do check before keying in and do not leave any spacing.🙂")
             bot.register_next_step_handler(message, remind_friend) 
+def process_settings(message):
+    chat_id = message.from_user.id
+    username = message.from_user.first_name
+    bot.send_chat_action(chat_id=chat_id, action="Typing")
+    msg = message.text
+    bot.clear_step_handler(message)
+    if msg == 'Reminders':
+        body = "Do you want to receive our daily and monthly reminders?"
+        bot.send_message(chat_id=chat_id, text=body, reply_markup=opt_button)
+        bot.register_next_step_handler(message, process_opt)
+    elif msg == 'Help':
+        body = "*How to use Saving for Rainy Days?*\nAt the start of each month, you will be required to plan your finances and key in your savings and budget that you have set aside for the month. \n\nHere’s a quick guide on our features:\n1) To update your savings and look at your saving records, select *Manage Savings*. Also, don’t forget to key in your monthly savings! Any bonus money received can also be checked in. 🥳\n\n2) Click *Manage Spendings* to update your daily spendings and monitor your spending history. 💸Remember to key in your monthly budget and update your daily expenditure!\n\n3) Select *Manage Debts* to track your lists of debtors and debtees easily. You can update the list accordingly.\n\n4) Select *Promotions* to check out the latest good deals in different categories.\n\n5) The *$ocialite* feature allows engagements with your friends via this bot!👨‍👩‍👧‍👦 Use this feature if you are too shy to ask your friend to pay you back (we help you do the dirty job)! You can also challenge your friend with his/her monthly spendings! However, please note that both you and your friends must have shared your contacts with the bot for this feature to work.\n\nWe will remind you daily to input your daily expenditure. Statistics on your finances for the month will be provided at the end of each month.😉 We hope you enjoy using the bot in managing your finances!"
+        bot.send_message(chat_id=chat_id, text=body, parse_mode="Markdown")
+        bot.register_next_step_handler(message, process_settings)
+    elif msg == 'Back':
+        bot.send_message(chat_id=chat_id, text= "Sending you back...", reply_markup=main_menu_buttons)
+        bot.register_next_step_handler(message, process_next_step)
+    else:
+        bot.send_message(chat_id=chat_id, text="Please note that our bot interacts with you mainly through the buttons.😅 Press /main to be redirected back to the main menu.", reply_markup=types.ReplyKeyboardRemove())   
+     
+def process_opt(message):
+    chat_id = message.from_user.id
+    username = message.from_user.first_name
+    bot.send_chat_action(chat_id=chat_id, action="Typing")
+    msg = message.text
+    bot.clear_step_handler(message)
+    if msg == 'Remind me hor':
+        #TODO
+        #PROCESS IN DB 
+        bot.send_message(chat_id=chat_id, text="We will send you daily reminders and your monthly report.")
+        bot.register_next_step_handler(message, process_opt)
+    elif msg == 'Dunwan reminders':
+        #TODO
+        #PROCESS IN DB
+        bot.send_message(chat_id=chat_id, text="We trust that you will key in your daily expenditure on your own ah. No reminders will be sent to you already.")
+        bot.register_next_step_handler(message, process_opt)
+    elif msg == 'Back':
+        bot.send_message(chat_id=chat_id, text= "Sending you back...", reply_markup=settings_button)
+        bot.register_next_step_handler(message, process_settings)
+    else:
+        bot.send_message(chat_id=chat_id, text="Please note that our bot interacts with you mainly through the buttons.😅 Press /main to be redirected back to the main menu.", reply_markup=types.ReplyKeyboardRemove())
 
 def schedule_checker():
     while True:
