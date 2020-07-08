@@ -13,7 +13,7 @@ class DBHelper:
         self.dbname = dbname
         db = sqlite3.connect(self.dbname)
         dbcursor = db.cursor()
-        dbcursor.execute('''CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, phone_number TEXT DEFAULT "NORECORD" NOT NULL, username TEXT NOT NULL)''')
+        dbcursor.execute('''CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, phone_number TEXT DEFAULT "NORECORD" NOT NULL, username TEXT NOT NULL, remind TEXT DEFAULT "ON" NOT NULL)''')
         dbcursor.execute('''CREATE TABLE IF NOT EXISTS monthly_budget (year_month TEXT NOT NULL, user_id INTEGER NOT NULL, amount TEXT NOT NULL, PRIMARY KEY(year_month, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id))''')
         dbcursor.execute('''CREATE TABLE IF NOT EXISTS daily_exp (date_time DATE NOT NULL, category TEXT NOT NULL, amount TEXT NOT NULL, user_id INTEGER NOT NULL, year_month TEXT NOT NULL, PRIMARY KEY (date_time, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id), FOREIGN KEY(year_month, user_id) REFERENCES monthly_budget(year_month, user_id))''')
         dbcursor.execute('''CREATE TABLE IF NOT EXISTS monthly_exp (year_month TEXT NOT NULL, user_id INTEGER NOT NULL, amount TEXT NOT NULL, within_budget INTEGER NOT NULL, PRIMARY KEY(year_month, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id), FOREIGN KEY(year_month, user_id) REFERENCES monthly_budget(year_month, user_id))''')
@@ -45,6 +45,40 @@ class DBHelper:
         dbcursor.execute(stmt, args)
         db.commit()
         dbcursor.close()       
+
+    def switch_on_reminder(self, user_id):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        rem = "ON"
+        stmt = '''UPDATE users SET remind = ? WHERE user_id = ?'''
+        args = (rem, user_id, )
+        dbcursor.execute(stmt, args)
+        db.commit()
+        dbcursor.close() 
+        
+    def switch_off_reminder(self, user_id):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        rem = "OFF"
+        stmt = '''UPDATE users SET remind = ? WHERE user_id = ?'''
+        args = (rem, user_id, )
+        dbcursor.execute(stmt, args)
+        db.commit()
+        dbcursor.close() 
+        
+    def wants_reminder(self, user_id):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT remind FROM users WHERE user_id = ?'''
+        args = (user_id, )
+        try: 
+            dbcursor.execute(stmt, args)
+            record = dbcursor.fetchone()
+            return record[0] == "ON"
+        except (sqlite3.Error, TypeError):
+            return False
+        finally:
+            dbcursor.close()
         
     def is_user_phone_number_stored(self, user_id):
         db = sqlite3.connect(self.dbname)
