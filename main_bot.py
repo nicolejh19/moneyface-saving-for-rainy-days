@@ -728,8 +728,8 @@ def delete_debtor(message):
             body = "The name you've keyed in is not in our database. Please check if you have keyed in the name of your debtor correctly or check if the person is in your debtor list and input again. If you have no debtor to delete, then input 'exit'."
             bot.send_message(chat_id=chat_id,text=body)
             bot.register_next_step_handler(message, delete_debtor)
-
-               def extract_contact(message):
+            
+def extract_contact(message):
     chat_id = message.from_user.id
     bot.send_chat_action(chat_id=chat_id, action="Typing")
     bot.clear_step_handler(message)
@@ -831,6 +831,7 @@ def remind_friend(message):
         except IndexError:
             bot.send_message(chat_id=chat_id, text="Key in the number and amount properly leh.🤨 If your friend already paid you back and no need to bug them anymore, type 'exit'.\nOtherwise, please input again in the following format: “+[country code][number],[amount]”. Do check before keying in and do not leave any spacing.🙂")
             bot.register_next_step_handler(message, remind_friend) 
+
 def process_settings(message):
     chat_id = message.from_user.id
     username = message.from_user.first_name
@@ -858,13 +859,11 @@ def process_opt(message):
     msg = message.text
     bot.clear_step_handler(message)
     if msg == 'Remind me hor':
-        #TODO
-        #PROCESS IN DB 
+        dbhelper.switch_on_reminder(chat_id)
         bot.send_message(chat_id=chat_id, text="We will send you daily reminders and your monthly report.")
         bot.register_next_step_handler(message, process_opt)
     elif msg == 'Dunwan reminders':
-        #TODO
-        #PROCESS IN DB
+        dbhelper.switch_off_reminder(chat_id)
         bot.send_message(chat_id=chat_id, text="We trust that you will key in your daily expenditure on your own ah. No reminders will be sent to you already.")
         bot.register_next_step_handler(message, process_opt)
     elif msg == 'Back':
@@ -929,38 +928,39 @@ def monthly():
         list_of_users = dbhelper.get_all_users()
         year_month = str(date.today().year) + str(date.today().month - 1)
         for i in list_of_users:
-            past_month_exp = dbhelper.get_monthly_exp(i, year_month)
-            past_month_savings = dbhelper.get_current_savings(year_month, i)
-            past_month_budget = dbhelper.get_monthly_budget(year_month, i)
-            average_savings = dbhelper.get_average_monthly_savings(i)
-            savings_msg = get_savings_msg(past_month_savings)
-            ave_savings_msg = get_ave_savings_msg(average_savings)
-            budget_msg = get_budget_msg(past_month_budget)
-            succ_or_fail_msg = get_succ_or_fail_msg(past_month_budget, past_month_exp)
-            exp_msg = get_exp_msg(past_month_exp)
-            average_exp = dbhelper.get_average_monthly_exp(i)
-            ave_exp_msg = get_ave_exp_msg(average_exp)
-            default_msg = "It is a new month!🤗 Start planning for your monthly savings and budget. Here's a summary of your savings and spendings last month:\n🗓 Monthly savings: " + savings_msg + "\n🗓 Average monthly savings: " + ave_savings_msg + "\n🗓 Monthly budget: " + budget_msg + "\n🗓 Monthly expenditure: " + exp_msg + "\n🗓 Average monthly expenditure: " + ave_exp_msg 
-            if is_float(past_month_exp): ### GOT PAST MONTH EXPENDITURE ###
-                flag = dbhelper.add_monthly_exp(i, year_month)
-                total_spending = float(past_month_exp)
-                curr_food_exp = float(dbhelper.get_monthly_category_exp(i, year_month, 'FOOD'))
-                curr_clothes_exp = float(dbhelper.get_monthly_category_exp(i, year_month, 'CLOTHES'))
-                curr_transport_exp = float(dbhelper.get_monthly_category_exp(i, year_month, 'TRANSPORT'))
-                curr_necc_exp = float(dbhelper.get_monthly_category_exp(i, year_month, 'NECESSITIES'))
-                curr_others_exp = float(dbhelper.get_monthly_category_exp(i, year_month, 'OTHERS'))
-                food = (curr_food_exp/total_spending) * 100
-                clothes = (curr_clothes_exp/ total_spending) * 100
-                transport = (curr_transport_exp / total_spending) * 100
-                necc = (curr_necc_exp/ total_spending) * 100
-                others = (curr_others_exp / total_spending) * 100
-                monthly = chart()
-                spent_most = monthly.make_piechart(food, clothes, transport, necc, others)
-                default_msg += "\n🗓 Category with highest spendings: " + spent_most + succ_or_fail_msg
-                bot.send_message(chat_id=i, text=default_msg)
-                bot.send_photo(chat_id=i, photo=open('/Users/User/Downloads/Orbital/Versions/monthly.png' ,'rb'))  
-            else:
-                bot.send_message(chat_id=i, text=default_msg)
+            if dbhelper.wants_reminder(i):
+                past_month_exp = dbhelper.get_monthly_exp(i, year_month)
+                past_month_savings = dbhelper.get_current_savings(year_month, i)
+                past_month_budget = dbhelper.get_monthly_budget(year_month, i)
+                average_savings = dbhelper.get_average_monthly_savings(i)
+                savings_msg = get_savings_msg(past_month_savings)
+                ave_savings_msg = get_ave_savings_msg(average_savings)
+                budget_msg = get_budget_msg(past_month_budget)
+                succ_or_fail_msg = get_succ_or_fail_msg(past_month_budget, past_month_exp)
+                exp_msg = get_exp_msg(past_month_exp)
+                average_exp = dbhelper.get_average_monthly_exp(i)
+                ave_exp_msg = get_ave_exp_msg(average_exp)
+                default_msg = "It is a new month!🤗 Start planning for your monthly savings and budget. Here's a summary of your savings and spendings last month:\n🗓 Monthly savings: " + savings_msg + "\n🗓 Average monthly savings: " + ave_savings_msg + "\n🗓 Monthly budget: " + budget_msg + "\n🗓 Monthly expenditure: " + exp_msg + "\n🗓 Average monthly expenditure: " + ave_exp_msg 
+                if is_float(past_month_exp): ### GOT PAST MONTH EXPENDITURE ###
+                    flag = dbhelper.add_monthly_exp(i, year_month)
+                    total_spending = float(past_month_exp)
+                    curr_food_exp = float(dbhelper.get_monthly_category_exp(i, year_month, 'FOOD'))
+                    curr_clothes_exp = float(dbhelper.get_monthly_category_exp(i, year_month, 'CLOTHES'))
+                    curr_transport_exp = float(dbhelper.get_monthly_category_exp(i, year_month, 'TRANSPORT'))
+                    curr_necc_exp = float(dbhelper.get_monthly_category_exp(i, year_month, 'NECESSITIES'))
+                    curr_others_exp = float(dbhelper.get_monthly_category_exp(i, year_month, 'OTHERS'))
+                    food = (curr_food_exp/total_spending) * 100
+                    clothes = (curr_clothes_exp/ total_spending) * 100
+                    transport = (curr_transport_exp / total_spending) * 100
+                    necc = (curr_necc_exp/ total_spending) * 100
+                    others = (curr_others_exp / total_spending) * 100
+                    monthly = chart()
+                    spent_most = monthly.make_piechart(food, clothes, transport, necc, others)
+                    default_msg += "\n🗓 Category with highest spendings: " + spent_most + succ_or_fail_msg
+                    bot.send_message(chat_id=i, text=default_msg)
+                    bot.send_photo(chat_id=i, photo=open('/Users/User/Downloads/Orbital/Versions/monthly.png' ,'rb'))  
+                else:
+                    bot.send_message(chat_id=i, text=default_msg)
     else:
         return
 
@@ -999,7 +999,8 @@ def monthly_challenges():
 def send_daily():
     list_of_users = dbhelper.get_all_users()
     for i in list_of_users:
-        bot.send_message(chat_id= i, text="Reminder: Have you keyed in your expenditure (if any) for today? 🤔 \nTracking your expenses and savings consistently helps you manage your finances better!")
+        if dbhelper.wants_reminder(i):
+            bot.send_message(chat_id= i, text="Reminder: Have you keyed in your expenditure (if any) for today? 🤔 \nTracking your expenses and savings consistently helps you manage your finances better!")
 
 while True:
     schedule.every().day.at("21:00").do(send_daily) 
