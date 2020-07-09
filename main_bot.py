@@ -80,7 +80,7 @@ def start(message):
     chat_id = message.from_user.id
     username = message.from_user.first_name
     dbhelper.add_user(chat_id, username)
-    start_text= "Welcome " + username + " to Saving for Rainy Days! 😄\nWe will guide you through rainy days and bring you luck to see the god of fortune.💰\n\nOur bot allows you to track your savings, spendings and debts. We also bring you easy access to promotions and encourage interactions with your friends in our $ocialite feature!\n\nTo begin your path to be in control of your wealth, press /main and we will guide you to your fortunes! If this is your first time using the bot, please select the help button in the main menu to learn how to use the bot.🤖 Good luck!\nWell wishes from Team MoneyFace🤑 "
+    start_text= "Welcome " + username + " to Saving for Rainy Days! 😄\nWe will guide you through rainy days and bring you luck to see the god of fortune.💰\n\nOur bot allows you to track your savings, spendings and debts. We also bring you easy access to promotions and encourage interactions with your friends in our $ocialite feature!\n\nTo begin your path to be in control of your wealth, press /main and we will guide you to your fortunes! If this is your first time using the bot, please go to Settings > Help in the main menu to learn how to use the bot.🤖 Good luck!\nWell wishes from Team MoneyFace🤑 "
     bot.send_message(chat_id=chat_id, text= start_text, reply_markup=types.ReplyKeyboardRemove())
 
 @bot.message_handler(commands=['main'])
@@ -843,7 +843,7 @@ def process_settings(message):
         bot.send_message(chat_id=chat_id, text=body, reply_markup=opt_button)
         bot.register_next_step_handler(message, process_opt)
     elif msg == 'Help':
-        body = "*How to use Saving for Rainy Days?*\nAt the start of each month, you will be required to plan your finances and key in your savings and budget that you have set aside for the month. \n\nHere’s a quick guide on our features:\n1) To update your savings and look at your saving records, select *Manage Savings*. Also, don’t forget to key in your monthly savings! Any bonus money received can also be checked in. 🥳\n\n2) Click *Manage Spendings* to update your daily spendings and monitor your spending history. 💸Remember to key in your monthly budget and update your daily expenditure!\n\n3) Select *Manage Debts* to track your lists of debtors and debtees easily. You can update the list accordingly.\n\n4) Select *Promotions* to check out the latest good deals in different categories.\n\n5) The *$ocialite* feature allows engagements with your friends via this bot!👨‍👩‍👧‍👦 Use this feature if you are too shy to ask your friend to pay you back (we help you do the dirty job)! You can also challenge your friend with his/her monthly spendings! However, please note that both you and your friends must have shared your contacts with the bot for this feature to work.\n\nWe will remind you daily to input your daily expenditure. Statistics on your finances for the month will be provided at the end of each month.😉 We hope you enjoy using the bot in managing your finances!"
+        body = "*How to use Saving for Rainy Days?*\n\nVisit https://chiamyunqing.github.io/saving-for-rainy-days/ to find out! 🌐"
         bot.send_message(chat_id=chat_id, text=body, parse_mode="Markdown")
         bot.register_next_step_handler(message, process_settings)
     elif msg == 'Back':
