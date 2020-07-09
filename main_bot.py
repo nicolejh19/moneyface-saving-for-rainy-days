@@ -843,7 +843,7 @@ def process_settings(message):
         bot.send_message(chat_id=chat_id, text=body, reply_markup=opt_button)
         bot.register_next_step_handler(message, process_opt)
     elif msg == 'Help':
-        body = "*How to use Saving for Rainy Days?*\n\nVisit https://chiamyunqing.github.io/saving-for-rainy-days/ to find out! 🌐"
+        body = "*How to use Saving for Rainy Days?*\n\nVisit https://tinyurl.com/savingforrainydays to find out! 🌐"
         bot.send_message(chat_id=chat_id, text=body, parse_mode="Markdown")
         bot.register_next_step_handler(message, process_settings)
     elif msg == 'Back':
