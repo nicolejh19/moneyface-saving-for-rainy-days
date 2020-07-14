@@ -12,17 +12,25 @@ class chart:
         if (d > 0): dictionary['Daily Necessities'] = d
         if (o > 0): dictionary['Others'] = o
         
+        max_cat = max(dictionary, key=dictionary.get)
+
         labels = []
         sizes = []
+        explode = []
         for entry in dictionary:
             labels.append(entry)
             sizes.append(dictionary[entry])
-        explode = tuple([0] * len(labels))
-        plt.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%')
+            if entry == max_cat:
+                explode.append(0.1)
+            else:
+                explode.append(0)
+
+        plt.pie(sizes, explode=tuple(explode), labels=labels, autopct='%1.1f%%', shadow=True)
         if monthly:
             plt.savefig('monthly.png')
         else:
             plt.savefig('current.png')
         plt.clf()
 
-        return max(dictionary, key=dictionary.get) #return name of max category
+        return max_cat #return name of max category
+
