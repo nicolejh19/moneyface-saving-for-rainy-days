@@ -16,8 +16,8 @@ class DBHelper:
         dbcursor.execute('''CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, phone_number TEXT DEFAULT "NORECORD" NOT NULL, username TEXT NOT NULL, remind TEXT DEFAULT "ON" NOT NULL)''')
         dbcursor.execute('''CREATE TABLE IF NOT EXISTS monthly_budget (year_month TEXT NOT NULL, user_id INTEGER NOT NULL, amount TEXT NOT NULL, PRIMARY KEY(year_month, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id))''')
         dbcursor.execute('''CREATE TABLE IF NOT EXISTS daily_exp (date_time DATE NOT NULL, category TEXT NOT NULL, amount TEXT NOT NULL, user_id INTEGER NOT NULL, year_month TEXT NOT NULL, PRIMARY KEY (date_time, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id), FOREIGN KEY(year_month, user_id) REFERENCES monthly_budget(year_month, user_id))''')
-        dbcursor.execute('''CREATE TABLE IF NOT EXISTS monthly_exp (year_month TEXT NOT NULL, user_id INTEGER NOT NULL, amount TEXT NOT NULL, within_budget INTEGER NOT NULL, PRIMARY KEY(year_month, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id), FOREIGN KEY(year_month, user_id) REFERENCES monthly_budget(year_month, user_id))''')
-        dbcursor.execute('''CREATE TABLE IF NOT EXISTS monthly_savings (date_time DATE NOT NULL, year_month TEXT NOT NULL, user_id INTEGER NOT NULL, amount TEXT NOT NULL, type_savings TEXT NOT NULL, PRIMARY KEY(date_time, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id))''')
+        dbcursor.execute('''CREATE TABLE IF NOT EXISTS monthly_exp (year_month TEXT NOT NULL, user_id INTEGER NOT NULL, amount TEXT NOT NULL, within_budget INTEGER NOT NULL, food TEXT NOT NULL, clothes TEXT NOT NULL, transport TEXT NOT NULL, nec TEXT NOT NULL, others TEXT NOT NULL, PRIMARY KEY(year_month, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id), FOREIGN KEY(year_month, user_id) REFERENCES monthly_budget(year_month, user_id))''')
+       dbcursor.execute('''CREATE TABLE IF NOT EXISTS monthly_savings (date_time DATE NOT NULL, year_month TEXT NOT NULL, user_id INTEGER NOT NULL, amount TEXT NOT NULL, type_savings TEXT NOT NULL, PRIMARY KEY(date_time, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id))''')
         dbcursor.execute('''CREATE TABLE IF NOT EXISTS challenges (year_month TEXT NOT NULL, user_id_challenger INTEGER NOT NULL, user_id_challenged INTEGER NOT NULL, amount TEXT NOT NULL, PRIMARY KEY(year_month, user_id_challenger, user_id_challenged), FOREIGN KEY(user_id_challenged) REFERENCES users(user_id), FOREIGN KEY(year_month, user_id_challenged) REFERENCES monthly_exp(year_month, user_id))''')
         dbcursor.execute('''CREATE TABLE IF NOT EXISTS iou (user_id_debtor INTEGER NOT NULL, name_debtee TEXT NOT NULL, amount TEXT NOT NULL, PRIMARY KEY(user_id_debtor, name_debtee), FOREIGN KEY(user_id_debtor) REFERENCES users(user_id))''')
         dbcursor.execute('''CREATE TABLE IF NOT EXISTS uome (user_id_debtee INTEGER NOT NULL, name_debtor TEXT NOT NULL, amount TEXT NOT NULL, PRIMARY KEY(user_id_debtee, name_debtor), FOREIGN KEY(user_id_debtee) REFERENCES users(user_id))''')                                                                
@@ -245,9 +245,9 @@ class DBHelper:
     def add_monthly_exp(self, user_id, year_month):
         db = sqlite3.connect(self.dbname)
         dbcursor = db.cursor()
-        stmt = '''INSERT INTO monthly_exp (year_month, amount, user_id, within_budget) VALUES (?, ?, ?, ?)'''
+        stmt = '''INSERT INTO monthly_exp (year_month, amount, user_id, within_budget, food, clothes, transport, nec, others) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'''
         amount = self.get_monthly_exp(user_id, year_month)
-        if not is_float(amount):
+        if not amount.isnumeric() or not is_float(amount):
             return False
         budget = self.get_monthly_budget(year_month, user_id)
         within_budget = 0
@@ -257,7 +257,12 @@ class DBHelper:
         except ValueError as e:
             if int(amount) <= budget:
                 within_budget = 1
-        args = (year_month, amount, user_id, within_budget, )
+        food = self.get_monthly_category_exp(user_id, year_month, 'FOOD')
+        clothes = self.get_monthly_category_exp(user_id, year_month, 'CLOTHES')
+        transport = self.get_monthly_category_exp(user_id, year_month, 'TRANSPORT')
+        nec = self.get_monthly_category_exp(user_id, year_month, 'NECESSITIES')
+        others = self.get_monthly_category_exp(user_id, year_month, 'OTHERS')
+        args = (year_month, amount, user_id, within_budget, food, clothes, transport, nec, others)
         try:
             dbcursor.execute(stmt, args)
             db.commit()
@@ -266,7 +271,7 @@ class DBHelper:
             return False
         finally:
             dbcursor.close()
-
+    
     ## FOR TESTING ONLY 
     def test_add_past_month_exp(self, user_id, amount):
         db = sqlite3.connect(self.dbname)
@@ -733,3 +738,37 @@ class DBHelper:
         self.test_add_daily_exp("FOOD", "50", "INSERT USER ID", 1589979600)
         self.test_add_daily_exp("CLOTHES", "30", "INSERT USER ID", 1589551200)
         self.test_add_daily_exp("TRANSPORT", "20", "INSERT USER ID", 1589122800)
+
+    def has_enough_data(self, user_id):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt1 = '''SELECT COUNT(DISTINCT year_month) FROM monthly_exp GROUP BY user_id HAVING user_id = ?'''
+        args = (user_id, )
+        try:
+            dbcursor.execute(stmt1, args)
+            record = dbcursor.fetchone()
+            if record is None:
+                return False
+            else:
+                return record[0] >= 6
+        except sqlite3.Error:
+                return False
+        finally:
+            dbcursor.close()
+            
+    def can_predict(self, user_id, prev_month):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt1 = '''SELECT COUNT(DISTINCT year_month) FROM monthly_exp WHERE year_month = ? GROUP BY user_id HAVING user_id = ?'''
+        args = (prev_month, user_id, )
+        try:
+            dbcursor.execute(stmt1, args)
+            record = dbcursor.fetchone()
+            if record is None:
+                return False
+            else:
+                return record[0] == 1
+        except sqlite3.Error:
+            return False
+        finally:
+            dbcursor.close()
