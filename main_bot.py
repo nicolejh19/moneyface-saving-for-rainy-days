@@ -17,13 +17,13 @@ dbhelper = DBHelper("NAME OF DATABASE")
 main_menu_buttons = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
 main_menu_buttons.add(types.KeyboardButton('Manage Savings'), types.KeyboardButton('Manage Spendings'), 
                     types.KeyboardButton('Promotions'), types.KeyboardButton('Manage Debts'),
-                    types.KeyboardButton('$ocialite'), types.KeyboardButton('Help'))
+                    types.KeyboardButton('$ocialite'), types.KeyboardButton('Settings'))
 
 my_s_button = types.ReplyKeyboardMarkup(resize_keyboard=True,row_width=2)
 my_s_button.add(types.KeyboardButton('Update'),types.KeyboardButton('My Records'),types.KeyboardButton('Back'))
 
 update_spendings_button = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-update_spendings_button.add(types.KeyboardButton('Monthly Budget'),types.KeyboardButton('Daily Expenditure'),types.KeyboardButton('Back'))
+update_spendings_button.add(types.KeyboardButton('Monthly Budget'),types.KeyboardButton('Daily Expenditure'),types.KeyboardButton('Advice'), types.KeyboardButton('Back'))
 
 update_savings_button = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
 update_savings_button.add(types.KeyboardButton('Monthly Savings'),types.KeyboardButton('Bonus Savings'),types.KeyboardButton('Back'))
@@ -68,10 +68,13 @@ settings_button.add(types.KeyboardButton('Reminders'), types.KeyboardButton('Hel
 opt_button = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
 opt_button.add(types.KeyboardButton('Remind me hor'), types.KeyboardButton('Dunwan reminders'), types.KeyboardButton('Back'))
 
+exit_button = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+exit_button.add(types.KeyboardButton('Exit'))
+
 def is_float(amt):
     try:
         temp = float(amt)
-        return True
+        return float(amt) >= 0
     except ValueError as e:
         return False
 
@@ -120,7 +123,7 @@ def process_next_step(message):
             bot.send_message(chat_id=chat_id, text=body, reply_markup=socialite_button, parse_mode="Markdown")
             bot.register_next_step_handler(message, process_socialite)
         else:
-            body = "To use this feature, we will require your contact. 📞 Please be assured that the information is used solely for engagement with your friends.🙂\nClick on the 'Share Contact' button below to share your contact with us. If you do not wish to share contact, type 'exit' to go back to main menu."
+            body = "To use this feature, we will require your contact. 📞 Please be assured that the information is used solely for engagement with your friends.🙂\nClick on the 'Share Contact' button below to share your contact with us. If you do not wish to share contact, type 'Exit' to go back to main menu."
             bot.send_message(chat_id=chat_id, text=body, reply_markup=contact_button)
             bot.register_next_step_handler(message, extract_contact)
     elif msg == 'Settings':
@@ -137,7 +140,7 @@ def process_my_savings(message):
     bot.clear_step_handler(message)
     if msg == 'Update':
         text = "To input your monthly savings at the start of each month, select *Monthly Savings* .\n\nJust received some money from your generous aunt or just received your scholarship money? 😎Go to *Bonus Savings* to increase your savings!"
-        bot.send_message(chat_id=chat_id, text=text, reply_markup=update_savings_button, parse_mode="Markdown")
+        bot.send_message(chat_id=chat_id, text=text, reply_markup=update_savings_button,parse_mode="Markdown")
         bot.register_next_step_handler(message, process_update_savings)
     elif msg == 'My Records':
         bot.send_message(chat_id=chat_id, text= "Do you want to check your current month savings or your savings history?", reply_markup=records_button)
@@ -159,7 +162,7 @@ def process_update_savings(message):
         year_month = str(dt.year) + str(dt.month)
         if not dbhelper.get_whether_current_monthly_saved(year_month, chat_id):
             text = "Please input your savings for this month. For example, if you want to save $888.88 this month, simply key in 888.88 😆 \n\nGod of Fortune says that the more you save, the richer you become! 🏦"
-            bot.send_message(chat_id=chat_id, text=text, reply_markup= types.ReplyKeyboardRemove())
+            bot.send_message(chat_id=chat_id, text=text, reply_markup= exit_button)
             bot.register_next_step_handler(message, process_monthly_savings)
         else:
             curr_savings = dbhelper.get_current_savings(year_month, chat_id)
@@ -167,7 +170,7 @@ def process_update_savings(message):
             bot.register_next_step_handler(message, process_update_savings)
     elif msg == 'Bonus Savings':
         text = "Wah feeling rich now right! Good money drop from the sky.🥳 Key in how much more you want to save. For example, if your generous aunt gave you $88.88, just key in 88.88."
-        bot.send_message(chat_id=chat_id, text=text, reply_markup= types.ReplyKeyboardRemove())
+        bot.send_message(chat_id=chat_id, text=text, reply_markup= exit_button)
         bot.register_next_step_handler(message, process_bonus_savings)
     elif msg == 'Back':
         bot.send_message(chat_id=chat_id, text= "Sending you back...", reply_markup=my_s_button)
@@ -187,11 +190,11 @@ def process_monthly_savings(message):
         dbhelper.add_monthly_savings(dt, year_month, msg, chat_id, 'MONTHLY')
         bot.send_message(chat_id=chat_id, text="Your savings for this month is $" + "{:.2f}".format(float(msg)) + ". 💶", reply_markup=update_savings_button)
         bot.register_next_step_handler(message, process_update_savings)
-    elif msg.lower() == 'exit':
+    elif msg == 'Exit':
         bot.send_message(chat_id=chat_id, text= "Exit",reply_markup=update_savings_button)
         bot.register_next_step_handler(message, process_update_savings)
     else:
-        bot.send_message(chat_id=chat_id, text="Input your monthly savings properly leh.😠 If you want to save $888.88, just key in 888.88. If you don't intend to key in yet, type 'exit'.")
+        bot.send_message(chat_id=chat_id, text="Input your monthly savings properly leh.😠 If you want to save $888.88, just key in 888.88. If you don't intend to key in yet, press Exit.")
         bot.register_next_step_handler(message, process_monthly_savings)
 
 def process_bonus_savings(message):
@@ -206,11 +209,11 @@ def process_bonus_savings(message):
         flag = dbhelper.add_monthly_savings(dt, year_month, msg, chat_id, 'BONUS')
         bot.send_message(chat_id=chat_id, text="Your bonus savings is $" + msg +".",reply_markup=update_savings_button)
         bot.register_next_step_handler(message, process_update_savings)
-    elif msg.lower() == 'exit':
+    elif msg == 'Exit':
         bot.send_message(chat_id=chat_id, text= "Exit", reply_markup=update_savings_button)
         bot.register_next_step_handler(message, process_update_savings)
     else:
-        bot.send_message(chat_id=chat_id, text="Input your bonus savings properly leh. If you don't want to check in any bonus savings hor, then type 'exit'.")
+        bot.send_message(chat_id=chat_id, text="Input your bonus savings properly leh. If you don't want to check in any bonus savings hor, then press Exit.")
         bot.register_next_step_handler(message, process_bonus_savings)
 
 def is_aboveequal_average(current_amount, average_amount):
@@ -239,7 +242,7 @@ def process_savings_records(message):
                 comparison = "\nYour savings for this month is the same as the average savings for the past months. Keep on saving!"
             else:
                 comparison = "\nYour savings for this month is below the average savings for the past months. Try to save more okay, you never know when there will be rainy days."
-            bot.send_message(chat_id=chat_id, text="Here's the statistics:\n🗓 Savings for the current month: $" + curr_savings + "\n🗓 Average monthly savings: $" +  str(average_savings) + comparison)
+            bot.send_message(chat_id=chat_id, text="Here's the statistics:\n🗓 Savings for the current month: $" + curr_savings + "\n🗓Average monthly savings: $" +  str(average_savings) + comparison)
         else:
             bot.send_message(chat_id=chat_id, text=curr_savings)
         bot.register_next_step_handler(message, process_savings_records)
@@ -247,7 +250,7 @@ def process_savings_records(message):
         total_savings = dbhelper.get_total_savings(chat_id)
         if total_savings != "0.00" and dbhelper.has_history_savings(chat_id, year_month):
             average_savings = dbhelper.get_average_monthly_savings(chat_id)
-            send_text = "Here's the statistics:\n🗓 Total savings since using Saving for Rainy Days: $" + total_savings + "\n🗓Average monthly savings: $" +  str(average_savings) + "\nKeep on saving!"
+            send_text = "Here's the statistics:\n🗓 Total savings since using Saving for Rainy Days: $" + total_savings + "\n🗓 Average monthly savings: $" +  str(average_savings) + "\nKeep on saving!"
         else:
             send_text = "There is no history of your savings. Keep saving and using Saving for Rainy Days to see your records next month!"
         bot.send_message(chat_id=chat_id, text=send_text)
@@ -265,7 +268,7 @@ def process_my_spendings(message):
     bot.clear_step_handler(message)
     if msg == 'Update':
         text = "To input your monthly budget at the start of each month, select *Monthly Budget*.\n\nJust bought your favourite bubble tea or spent on other things? 😔Go to *Daily Expenditure* to key in your spendings."
-        bot.send_message(chat_id=chat_id, text= text, reply_markup=update_spendings_button)
+        bot.send_message(chat_id=chat_id, text= text, reply_markup=update_spendings_button,parse_mode="Markdown")
         bot.register_next_step_handler(message, process_update)
     elif msg == 'My Records':
         text = "Do you want to check your current month expenditure or your spending history? Tracking your spendings makes you the one in control of your finances. 😎"
@@ -288,7 +291,7 @@ def process_update(message):
         year_month = str(dt.year) + str(dt.month)
         if not is_float(dbhelper.get_monthly_budget(year_month, chat_id)):
             text = "Please input your budget for this month. For example, if you intend to set aside $300.50 for this month, just key in 300.5 😉\n\nSetting a reasonable budget is key to managing your finances. 💪"
-            bot.send_message(chat_id=chat_id, text=text,reply_markup= types.ReplyKeyboardRemove())
+            bot.send_message(chat_id=chat_id, text=text,reply_markup= exit_button)
             bot.register_next_step_handler(message, process_monthly_budget)
         else:
             curr_budget = dbhelper.get_monthly_budget(year_month, chat_id)
@@ -315,11 +318,11 @@ def process_monthly_budget(message):
         dbhelper.add_monthly_budget(year_month, msg, chat_id)
         bot.send_message(chat_id=chat_id, text="Your budget for this month is $" + "{:.2f}".format(float(msg)) + ". 🤑", reply_markup=update_spendings_button)
         bot.register_next_step_handler(message, process_update)
-    elif msg.lower() == 'exit':
+    elif msg == 'Exit':
         bot.send_message(chat_id=chat_id, text= "Exit", reply_markup=update_spendings_button)
         bot.register_next_step_handler(message, process_update)
     else:
-        bot.send_message(chat_id=chat_id, text="Input your budget properly lah.🙄 If you prepared $200.50 to spend, just key in 200.5. 😌 If you don't want to key in yet, then type 'exit'.")
+        bot.send_message(chat_id=chat_id, text="Input your budget properly lah.🙄 If you prepared $200.50 to spend, just key in 200.5. 😌 If you don't want to key in yet, then press Exit.")
         bot.register_next_step_handler(message, process_monthly_budget)
 
 def process_daily_expenditure(message):
@@ -623,11 +626,11 @@ def update_debtee(message):
     bot.clear_step_handler(message)
     if msg == 'Add Debtee':
         body = "To add a debtee, please input in the following format: “[name of debtee],[amount you owed]“.\nE.g. If you owed Tan Ah Long $50, then key in Tan Ah Long,50. Do check before keying in and do not leave any spacing.🙂"
-        bot.send_message(chat_id=chat_id, text=body, reply_markup= types.ReplyKeyboardRemove())
+        bot.send_message(chat_id=chat_id, text=body, reply_markup= exit_button)
         bot.register_next_step_handler(message, add_debtee)
     elif msg == 'Delete Debtee':
         body = "Congratulations on paying back what you’ve owed!🥳 To delete a debtee, simply input the name of the debtee that is in your debtee list. \nE.g. If you have cleared your debts with Tan Ah Long, then simply key in Tan Ah Long."
-        bot.send_message(chat_id=chat_id, text= body, reply_markup=types.ReplyKeyboardRemove())
+        bot.send_message(chat_id=chat_id, text= body, reply_markup= exit_button)
         bot.register_next_step_handler(message, delete_debtee)
     elif msg == 'Back':
         bot.send_message(chat_id=chat_id, text= "Sending you back...", reply_markup=iou_button)
@@ -640,19 +643,23 @@ def add_debtee(message):
     msg = message.text
     bot.send_chat_action(chat_id=chat_id, action="Typing")
     bot.clear_step_handler(message)
-    if msg.lower() == 'exit':
+    if msg == 'Exit':
         bot.send_message(chat_id=chat_id, text="Exit", reply_markup=debtee_button)
         bot.register_next_step_handler(message, update_debtee)
     else: 
         arr = msg.split(",")
         try:
+            test = float(arr[1])
             name_debtee, amt = arr[0], arr[1]
             dbhelper.add_debtee_iou(chat_id, name_debtee.upper(), amt)
             body = "You owed " + name_debtee + " $" + amt + " and it has been added to your debtee list. Remember to faster pay back okay!"
             bot.send_message(chat_id=chat_id, text=body, reply_markup=debtee_button)
             bot.register_next_step_handler(message, update_debtee)
         except IndexError:
-            bot.send_message(chat_id=chat_id, text="Please follow the format for input.🙂 If you don't want to add debtee, input 'exit'.")
+            bot.send_message(chat_id=chat_id, text="Please follow the format for input.🙂 If you don't want to add debtee, press Exit.")
+            bot.register_next_step_handler(message, add_debtee)
+        except ValueError:
+            bot.send_message(chat_id=chat_id, text="Input a value properly leh.🙂 If you don't want to add debtee, press Exit.")
             bot.register_next_step_handler(message, add_debtee)
 
 def delete_debtee(message):
@@ -660,7 +667,7 @@ def delete_debtee(message):
     msg = message.text
     bot.send_chat_action(chat_id=chat_id, action="Typing")
     bot.clear_step_handler(message)
-    if msg.lower() == 'exit':
+    if msg == 'Exit':
         bot.send_message(chat_id=chat_id, text="Exit", reply_markup=debtee_button)
         bot.register_next_step_handler(message, update_debtee)
     else: 
@@ -669,7 +676,7 @@ def delete_debtee(message):
             bot.send_message(chat_id=chat_id,text="You have removed " + msg + " from your debtee list. Good job!", reply_markup=debtee_button)
             bot.register_next_step_handler(message, update_debtee)
         else:
-            body = "The name you've keyed in is not in our database. Please check if you have keyed in the name of your debtee correctly or check if the person is in your debtee list and input again. If you have no debtee to delete, then input 'exit'."
+            body = "The name you've keyed in is not in our database. Please check if you have keyed in the name of your debtee correctly or check if the person is in your debtee list and input again. If you have no debtee to delete, then press Exit."
             bot.send_message(chat_id=chat_id,text=body)
             bot.register_next_step_handler(message, delete_debtee)
 
@@ -680,11 +687,11 @@ def update_debtor(message):
     bot.clear_step_handler(message)
     if msg == 'Add Debtor':
         body = "To add a debtor, please input in the following format: “[name of debtor],[amount they owed you]“.\nE.g. If you lent Tan Ah Beng $50, then key in Tan Ah Beng,50. Do check before keying in and do not leave any spacing.🙂"
-        bot.send_message(chat_id=chat_id, text=body, reply_markup=types.ReplyKeyboardRemove())
+        bot.send_message(chat_id=chat_id, text=body, reply_markup=exit_button)
         bot.register_next_step_handler(message, add_debtor)
     elif msg == 'Delete Debtor':
         body = "Congratulations on receiving back your money!🥳 To delete a debtor, simply input the name of the debtor that is in your debtor list. \nE.g. If Tan Ah Beng paid you back, then simply key in Tan Ah Beng."
-        bot.send_message(chat_id=chat_id, text=body, reply_markup=types.ReplyKeyboardRemove())
+        bot.send_message(chat_id=chat_id, text=body, reply_markup=exit_button)
         bot.register_next_step_handler(message, delete_debtor)
     elif msg == 'Back':
         bot.send_message(chat_id=chat_id, text= "Sending you back...", reply_markup=uome_button)
@@ -697,26 +704,30 @@ def add_debtor(message):
     msg = message.text
     bot.send_chat_action(chat_id=chat_id, action="Typing")
     bot.clear_step_handler(message)
-    if msg.lower() == 'exit':
+    if msg == 'Exit':
         bot.send_message(chat_id=chat_id, text="Exit", reply_markup=debtor_button)
         bot.register_next_step_handler(message, update_debtor)
     else: 
         arr = msg.split(",")
         try:
+            test = float(arr[1])
             name_debtor, amt = arr[0], arr[1]
             dbhelper.add_debtor_uome(chat_id, name_debtor.upper(), amt)
             body = "You lent " + arr[0] + " $" + arr[1] + " and it has been added to your debtor list. If you shy ah, can use our $ocialite feature to remind them to pay back okay!"
             bot.send_message(chat_id=chat_id, text=body, reply_markup=debtor_button)
             bot.register_next_step_handler(message, update_debtor)
         except IndexError:
-            bot.send_message(chat_id=chat_id, text="Please follow the format for input.🙂 If you don't want to add debtor, input 'exit'.")
+            bot.send_message(chat_id=chat_id, text="Please follow the format for input.🙂 If you don't want to add debtor, press Exit.")
+            bot.register_next_step_handler(message, add_debtor)
+        except ValueError:
+            bot.send_message(chat_id=chat_id, text="Input the value properly leh.🙂 If you don't want to add debtor, press Exit.")
             bot.register_next_step_handler(message, add_debtor)
 
 def delete_debtor(message):
     chat_id = message.from_user.id
     msg = message.text
     bot.clear_step_handler(message)
-    if msg.lower() == 'exit':
+    if msg == 'Exit':
         bot.send_message(chat_id=chat_id, text="Exit", reply_markup=debtor_button)
         bot.register_next_step_handler(message, update_debtor)
     else: 
@@ -725,10 +736,10 @@ def delete_debtor(message):
             bot.send_message(chat_id=chat_id,text="You have removed " + msg + " from your debtor list. Good job!", reply_markup=debtor_button)
             bot.register_next_step_handler(message, update_debtor)
         else:
-            body = "The name you've keyed in is not in our database. Please check if you have keyed in the name of your debtor correctly or check if the person is in your debtor list and input again. If you have no debtor to delete, then input 'exit'."
+            body = "The name you've keyed in is not in our database. Please check if you have keyed in the name of your debtor correctly or check if the person is in your debtor list and input again. If you have no debtor to delete, then press Exit."
             bot.send_message(chat_id=chat_id,text=body)
             bot.register_next_step_handler(message, delete_debtor)
-            
+
 def extract_contact(message):
     chat_id = message.from_user.id
     bot.send_chat_action(chat_id=chat_id, action="Typing")
@@ -770,12 +781,13 @@ def challenge_friend(message):
     bot.send_chat_action(chat_id=chat_id, action="Typing")
     msg = message.text
     bot.clear_step_handler(message)
-    if msg.lower() == 'exit':
+    if msg == 'Exit':
         bot.send_message(chat_id=chat_id, text="Exit", reply_markup=socialite_button)
         bot.register_next_step_handler(message, process_socialite)
     else:
         arr = msg.split(",")
         try: 
+            test = float(arr[1])
             friend_number, amt = arr[0], arr[1]
             if dbhelper.is_user_stored(friend_number):
                 if is_float(arr[1]):
@@ -792,14 +804,17 @@ def challenge_friend(message):
                         bot.send_message(chat_id=chat_id, text="You already challenged " + friend_name + " to spend $" + amt + " for this month leh... Can give your friend a break and re-challenge next month again? 🙃Meanwhile you also up your game to be the saving guru by tracking your spendings can?", reply_markup=socialite_button)
                     bot.register_next_step_handler(message, process_socialite)
                 else:
-                    bot.send_message(chat_id=chat_id, text="Key in the amount properly leh.🤨 If you think your friend confirm cmi and don't want to challenge anymore, type 'exit'.")
+                    bot.send_message(chat_id=chat_id, text="Key in the amount properly leh.🤨 If you think your friend confirm cmi and don't want to challenge anymore, press Exit.")
                     bot.register_next_step_handler(message, challenge_friend)
             else:
                 body = "Unfortunately, the contact that you keyed in is not in our database.😪 Get your friend to use 'Saving for Rainy Days' today and activate the $ocialite feature to interact with your friends!😀"
                 bot.send_message(chat_id=chat_id, text=body, reply_markup=socialite_button)
                 bot.register_next_step_handler(message, process_socialite)
         except IndexError:
-            bot.send_message(chat_id=chat_id, text="Key in the number and amount properly leh.🤨 If you think your friend confirm cmi and don't want to challenge anymore, type 'exit'.\nOtherwise, please input in the following format: “+[country code][number],[amount]”. Do check before keying in and do not leave any spacing.🙂")
+            bot.send_message(chat_id=chat_id, text="Key in the number and amount properly leh.🤨 If you think your friend confirm cmi and don't want to challenge anymore, press Exit.\nOtherwise, please input in the following format: “+[country code][number],[amount]”. Do check before keying in and do not leave any spacing.🙂")
+            bot.register_next_step_handler(message, challenge_friend)
+        except ValueError:
+            bot.send_message(chat_id=chat_id, text="Key in the value properly leh.🤨 If you think your friend confirm cmi and don't want to challenge anymore, press Exit.\nOtherwise, please input in the following format: “+[country code][number],[amount]”. Do check before keying in and do not leave any spacing.🙂")
             bot.register_next_step_handler(message, challenge_friend)
 
 def remind_friend(message):
@@ -808,12 +823,13 @@ def remind_friend(message):
     bot.send_chat_action(chat_id=chat_id, action="Typing")
     msg = message.text
     bot.clear_step_handler(message)
-    if msg.lower() == 'exit':
+    if msg == 'Exit':
         bot.send_message(chat_id=chat_id, text="Exit", reply_markup=socialite_button)
         bot.register_next_step_handler(message, process_socialite)
     else:
         arr = msg.split(",")
         try: 
+            test = float(arr[1])
             friend_number, amt = arr[0], arr[1]
             if dbhelper.is_user_stored(friend_number):
                 if is_float(amt):
@@ -822,15 +838,18 @@ def remind_friend(message):
                     bot.send_message(chat_id=chat_id, text="We have helped you chase your friend to pay you back!💵 Hopefully, your money comes back to you quickly.", reply_markup=socialite_button)
                     bot.register_next_step_handler(message, process_socialite)
                 else:
-                    bot.send_message(chat_id=chat_id, text="Key in the amount properly leh.🤨 If your friend already paid you back and no need to bug them anymore, type 'exit'.")
+                    bot.send_message(chat_id=chat_id, text="Key in the amount properly leh.🤨 If your friend already paid you back and no need to bug them anymore, press Exit.")
                     bot.register_next_step_handler(message, remind_friend)
             else:
                 body = "Unfortunately, the contact that you keyed in is not in our database.😪 Get your friend to use 'Saving for Rainy Days' today and activate the $ocialite feature to interact with your friends!😀"
                 bot.send_message(chat_id=chat_id, text=body, reply_markup=socialite_button)
                 bot.register_next_step_handler(message, process_socialite)
         except IndexError:
-            bot.send_message(chat_id=chat_id, text="Key in the number and amount properly leh.🤨 If your friend already paid you back and no need to bug them anymore, type 'exit'.\nOtherwise, please input again in the following format: “+[country code][number],[amount]”. Do check before keying in and do not leave any spacing.🙂")
-            bot.register_next_step_handler(message, remind_friend) 
+            bot.send_message(chat_id=chat_id, text="Key in the number and amount properly leh.🤨 If your friend already paid you back and no need to bug them anymore, press Exit.\nOtherwise, please input again in the following format: “+[country code][number],[amount]”. Do check before keying in and do not leave any spacing.🙂")
+            bot.register_next_step_handler(message, remind_friend)
+        except ValueError:
+            bot.send_message(chat_id=chat_id, text="Key in the amount properly leh.🤨 If your friend already paid you back and no need to bug them anymore, press Exit.\nOtherwise, please input again in the following format: “+[country code][number],[amount]”. Do check before keying in and do not leave any spacing.🙂")
+            bot.register_next_step_handler(message, remind_friend)
 
 def process_settings(message):
     chat_id = message.from_user.id
