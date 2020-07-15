@@ -300,6 +300,14 @@ def process_update(message):
     elif msg == 'Daily Expenditure':
         bot.send_message(chat_id=chat_id, text="Select the category to input your expenditure. Always remember to spend within your budget that you've planned! 💪", reply_markup=promotions_button)
         bot.register_next_step_handler(message, process_daily_expenditure)
+    elif msg == 'Advice':
+        ##checks whether if have advice
+        #TODO Machine Learning please
+        if canadvise:
+            bot.send_message(chat_id=chat_id, text= "Based on your past spending patterns, we predict that the monthly budget required of you for this month is $" + amt +".")
+        else:
+            bot.send_message(chat_id=chat_id, text= "You do not have enough spending records for us to give you an accurate prediction of your monthly budget for this month. Continue using our bot for a few more months!")
+        bot.register_next_step_handler(message, process_update)
     elif msg == 'Back':
         bot.send_message(chat_id=chat_id, text= "Sending you back...", reply_markup=my_s_button)
         bot.register_next_step_handler(message, process_my_spendings)
