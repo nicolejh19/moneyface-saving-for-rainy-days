@@ -10,6 +10,7 @@ from _datetime import date
 import logging
 from genpie import chart
 from decimal import *
+from mlhelper import MLhelper
 
 bot = telebot.TeleBot("TOKEN")
 dbhelper = DBHelper("NAME OF DATABASE")
@@ -285,10 +286,10 @@ def process_update(message):
     msg = message.text
     bot.send_chat_action(chat_id=chat_id, action="Typing")
     bot.clear_step_handler(message)
+    unix_date = int(message.date)
+    dt = datetime.utcfromtimestamp(unix_date)
+    year_month = str(dt.year) + str(dt.month)
     if msg == 'Monthly Budget':
-        unix_date = int(message.date)
-        dt = datetime.utcfromtimestamp(unix_date)
-        year_month = str(dt.year) + str(dt.month)
         if not is_float(dbhelper.get_monthly_budget(year_month, chat_id)):
             text = "Please input your budget for this month. For example, if you intend to set aside $300.50 for this month, just key in 300.5 😉\n\nSetting a reasonable budget is key to managing your finances. 💪"
             bot.send_message(chat_id=chat_id, text=text,reply_markup= exit_button)
@@ -301,12 +302,19 @@ def process_update(message):
         bot.send_message(chat_id=chat_id, text="Select the category to input your expenditure. Always remember to spend within your budget that you've planned! 💪", reply_markup=promotions_button)
         bot.register_next_step_handler(message, process_daily_expenditure)
     elif msg == 'Advice':
-        ##checks whether if have advice
-        #TODO Machine Learning please
-        if canadvise:
-            bot.send_message(chat_id=chat_id, text= "Based on your past spending patterns, we predict that the monthly budget required of you for this month is $" + amt +".")
+        prev_month = str(dt.year) + str(dt.month - 1)
+        ### TEST CODE ###
+        dbhelper.test_ml_part_1()
+        dbhelper.test_ml_part_2()
+        dbhelper.test_ml_part_3()
+        if dbhelper.can_predict(chat_id, prev_month):
+            ml_data = dbhelper.get_ml_data(chat_id, prev_month)
+            pred_data = dbhelper.get_pred_data(chat_id, prev_month)
+            mlhelper = MLhelper(ml_data, pred_data)
+            amt = mlhelper.run_model()
+            bot.send_message(chat_id=chat_id, text= "Based on your past spending patterns, we predict that the monthly budget required of you for this month is $" + str(amt) +".")
         else:
-            bot.send_message(chat_id=chat_id, text= "You do not have enough spending records for us to give you an accurate prediction of your monthly budget for this month. Continue using our bot for a few more months!")
+            bot.send_message(chat_id=chat_id, text= "You do not have enough spending records for us to give you an accurate prediction of your monthly budget for this month. Continue using our bot for a few more months and make sure to set a budget every month!")
         bot.register_next_step_handler(message, process_update)
     elif msg == 'Back':
         bot.send_message(chat_id=chat_id, text= "Sending you back...", reply_markup=my_s_button)
