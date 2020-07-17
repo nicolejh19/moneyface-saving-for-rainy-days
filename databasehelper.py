@@ -755,8 +755,34 @@ class DBHelper:
                 return False
         finally:
             dbcursor.close()
+
+    def no_budget_stored(self, user_id):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT amount FROM monthly_exp WHERE user_id = ?'''
+        args = (user_id, )
+        try:
+            dbcursor.execute(stmt, args)
+            records = dbcursor.fetchall()
+            res, counter = [], 0
+            for row in records:
+                try: 
+                    res.append(float(row[0]))
+                    counter += 1
+                except:
+                    res.append(0.0)
+            if counter == 0:
+                return True
+            else:
+                return False
+        except sqlite3.DatabaseError:
+            return True
+        finally:
+            dbcursor.close()  
             
     def can_predict(self, user_id, prev_month):
+        if not self.has_enough_data(user_id) or self.no_budget_stored(user_id):
+            return False
         db = sqlite3.connect(self.dbname)
         dbcursor = db.cursor()
         stmt1 = '''SELECT COUNT(DISTINCT year_month) FROM monthly_exp WHERE year_month = ? GROUP BY user_id HAVING user_id = ?'''
@@ -772,3 +798,249 @@ class DBHelper:
             return False
         finally:
             dbcursor.close()
+            
+    def get_food_data(self, user_id, prev_month):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT food FROM monthly_exp WHERE user_id = ? AND year_month <> ?'''
+        args = (user_id, prev_month, )
+        try:
+            dbcursor.execute(stmt, args)
+            records = dbcursor.fetchall()
+            res = []
+            for row in records:
+                res.append(float(row[0]))
+            return res
+        except sqlite3.DatabaseError:
+            return []
+        finally:
+            dbcursor.close()   
+
+    def get_clothes_data(self, user_id, prev_month):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT clothes FROM monthly_exp WHERE user_id = ? AND year_month <> ?'''
+        args = (user_id, prev_month, )
+        try:
+            dbcursor.execute(stmt, args)
+            records = dbcursor.fetchall()
+            res = []
+            for row in records:
+                res.append(float(row[0]))
+            return res
+        except sqlite3.DatabaseError:
+            return []
+        finally:
+            dbcursor.close()   
+            
+    def get_transport_data(self, user_id, prev_month):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT transport FROM monthly_exp WHERE user_id = ? AND year_month <> ?'''
+        args = (user_id, prev_month, )
+        try:
+            dbcursor.execute(stmt, args)
+            records = dbcursor.fetchall()
+            res = []
+            for row in records:
+                res.append(float(row[0]))
+            return res
+        except sqlite3.DatabaseError:
+            return []
+        finally:
+            dbcursor.close()   
+
+    def get_nec_data(self, user_id, prev_month):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT nec FROM monthly_exp WHERE user_id = ? AND year_month <> ?'''
+        args = (user_id, prev_month, )
+        try:
+            dbcursor.execute(stmt, args)
+            records = dbcursor.fetchall()
+            res = []
+            for row in records:
+                res.append(float(row[0]))
+            return res
+        except sqlite3.DatabaseError:
+            return []
+        finally:
+            dbcursor.close()  
+            
+    def get_others_data(self, user_id, prev_month):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT others FROM monthly_exp WHERE user_id = ? AND year_month <> ?'''
+        args = (user_id, prev_month, )
+        try:
+            dbcursor.execute(stmt, args)
+            records = dbcursor.fetchall()
+            res = []
+            for row in records:
+                res.append(float(row[0]))
+            return res
+        except sqlite3.DatabaseError:
+            return []
+        finally:
+            dbcursor.close()  
+            
+    def get_amount_data(self, user_id, prev_month):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT amount FROM monthly_exp WHERE user_id = ? AND year_month <> ?'''
+        args = (user_id, prev_month, )
+        try:
+            dbcursor.execute(stmt, args)
+            records = dbcursor.fetchall()
+            res = []
+            for row in records:
+                try:
+                    res.append(float(row[0]))
+                except:
+                    res.append(0.0)
+            return res
+        except sqlite3.DatabaseError:
+            return []
+        finally:
+            dbcursor.close()  
+
+    def get_ml_data(self, user_id, prev_month):
+        food_data = self.get_food_data(user_id, prev_month)
+        clothes_data = self.get_clothes_data(user_id, prev_month)
+        transport_data = self.get_transport_data(user_id, prev_month)
+        nec_data = self.get_nec_data(user_id, prev_month)
+        others_data = self.get_others_data(user_id, prev_month)
+        amount_data = self.get_amount_data(user_id, prev_month)
+        res = {'food': food_data, 'clothes': clothes_data, 'transport': transport_data, 'nec': nec_data, 'others': others_data, 'amount': amount_data}
+        return res
+    
+    def get_pred_food_data(self, user_id, prev_month):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT food FROM monthly_exp WHERE user_id = ? AND year_month = ?'''
+        args = (user_id, prev_month, )
+        try:
+            dbcursor.execute(stmt, args)
+            records = dbcursor.fetchone()
+            return float(records[0])
+        except sqlite3.DatabaseError:
+            return 0.0
+        finally:
+            dbcursor.close()      
+            
+    def get_pred_clothes_data(self, user_id, prev_month):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT clothes FROM monthly_exp WHERE user_id = ? AND year_month = ?'''
+        args = (user_id, prev_month, )
+        try:
+            dbcursor.execute(stmt, args)
+            records = dbcursor.fetchone()
+            return float(records[0])
+        except sqlite3.DatabaseError:
+            return 0.0
+        finally:
+            dbcursor.close()
+
+    def get_pred_transport_data(self, user_id, prev_month):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT transport FROM monthly_exp WHERE user_id = ? AND year_month = ?'''
+        args = (user_id, prev_month, )
+        try:
+            dbcursor.execute(stmt, args)
+            records = dbcursor.fetchone()
+            return float(records[0])
+        except sqlite3.DatabaseError:
+            return 0.0
+        finally:
+            dbcursor.close()  
+            
+    def get_pred_nec_data(self, user_id, prev_month):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT nec FROM monthly_exp WHERE user_id = ? AND year_month = ?'''
+        args = (user_id, prev_month, )
+        try:
+            dbcursor.execute(stmt, args)
+            records = dbcursor.fetchone()
+            return float(records[0])
+        except sqlite3.DatabaseError:
+            return 0.0
+        finally:
+            dbcursor.close()  
+            
+    def get_pred_others_data(self, user_id, prev_month):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT others FROM monthly_exp WHERE user_id = ? AND year_month = ?'''
+        args = (user_id, prev_month, )
+        try:
+            dbcursor.execute(stmt, args)
+            records = dbcursor.fetchone()
+            return float(records[0])
+        except sqlite3.DatabaseError:
+            return 0.0
+        finally:
+            dbcursor.close()  
+
+    def get_pred_amount_data(self, user_id, prev_month):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT amount FROM monthly_exp WHERE user_id = ? AND year_month = ?'''
+        args = (user_id, prev_month, )
+        try:
+            dbcursor.execute(stmt)
+            records = dbcursor.fetchone()
+            try:
+                res = float(records[0])
+                return res
+            except:
+                return 0.0
+        except sqlite3.DatabaseError:
+            return 0.0
+        finally:
+            dbcursor.close()  
+            
+    def get_pred_data(self, user_id, prev_month):
+        food_data = [self.get_pred_food_data(user_id, prev_month)]
+        clothes_data = [self.get_pred_clothes_data(user_id, prev_month)]
+        transport_data = [self.get_pred_transport_data(user_id, prev_month)]
+        nec_data = [self.get_pred_nec_data(user_id, prev_month)]
+        others_data = [self.get_pred_others_data(user_id, prev_month)]
+        amount_data = [self.get_pred_amount_data(user_id, prev_month)]
+        res = {'food': food_data, 'clothes': clothes_data, 'transport': transport_data, 'nec': nec_data, 'others': others_data, 'amount': amount_data}
+        return res
+    
+    ## USE FOR TESTING ONLY
+    def test_add_ml_exp(self, year_month, amount, within_budget, food, clothes, transport, nec, others):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        user_id = "USERID"
+        stmt = '''INSERT INTO monthly_exp (year_month, amount, user_id, within_budget, food, clothes, transport, nec, others) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'''
+        args = (year_month, amount, user_id, within_budget, food, clothes, transport, nec, others)
+        dbcursor.execute(stmt, args)
+        db.commit()
+        dbcursor.close()
+
+    ## USE FOR TESTING ONLY
+    def test_ml_part_1(self):
+        self.test_add_ml_exp("201912", "370.0", 0, "300", "0.0", "72.40", "0.0", "0.0")
+        self.test_add_ml_exp("20201", "350", 1, "230", "36.90", "52.40", "13.0", "0.0")
+        self.test_add_ml_exp("20202", "0.0", 1, "270", "45.90", "62.40", "0.0", "0.0")
+        self.test_add_ml_exp("20203", "300", 1, "200", "0.0", "42.40", "0.0", "15.20")
+        self.test_add_ml_exp("20204", "0.0", 1, "190", "20.0", "52.40", "0.0", "0.0")
+        self.test_add_ml_exp("20205", "0.0", 1, "210", "0.0", "32.20", "27.90", "0.0")
+        
+    ## USE FOR TESTING ONLY
+    def test_ml_part_2(self):
+        self.test_add_ml_exp("20206", "0.0", 1, "240", "36.50", "52.20", "0.0", "0.0")
+        
+    ## USE FOR TESTING ONLY
+    def test_ml_part_3(self):
+        self.test_add_ml_exp("201912", "nobudget", 0, "300", "0.0", "72.40", "0.0", "0.0")
+        self.test_add_ml_exp("20201", "nobudget", 1, "230", "36.90", "52.40", "13.0", "0.0")
+        self.test_add_ml_exp("20202", "nobudget", 1, "270", "45.90", "62.40", "0.0", "0.0")
+        self.test_add_ml_exp("20203", "nobudget", 1, "200", "0.0", "42.40", "0.0", "15.20")
+        self.test_add_ml_exp("20204", "nobudget", 1, "190", "20.0", "52.40", "0.0", "0.0")
+        self.test_add_ml_exp("20205", "nobudget", 1, "210", "0.0", "32.20", "27.90", "0.0")
