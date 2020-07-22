@@ -513,7 +513,24 @@ class DBHelper:
             return []
         finally:
             dbcursor.close() 
-            
+
+    def get_all_debtee_names(self, user_id):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT name_debtee FROM iou WHERE user_id_debtor = ?'''
+        args = (user_id, )
+        try:
+            dbcursor.execute(stmt, args)
+            records = dbcursor.fetchall()
+            res = []
+            for row in records:
+                res.append(row)
+            return res
+        except sqlite3.DatabaseError:
+            return []
+        finally:
+            dbcursor.close() 
+
     def is_debtee_present_iou(self, user_id_debtor, name_debtee):
         db = sqlite3.connect(self.dbname)
         dbcursor = db.cursor()
@@ -573,6 +590,23 @@ class DBHelper:
             for row in records:
                 res.append((row[0], row[1], ))
                 return res
+        except sqlite3.DatabaseError:
+            return []
+        finally:
+            dbcursor.close()
+
+    def get_all_debtor_names(self, user_id):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT name_debtor FROM uome WHERE user_id_debtee = ?'''
+        args = (user_id, )
+        try:
+            dbcursor.execute(stmt, args)
+            records = dbcursor.fetchall()
+            res = []
+            for row in records:
+                res.append(row)
+            return res
         except sqlite3.DatabaseError:
             return []
         finally:
