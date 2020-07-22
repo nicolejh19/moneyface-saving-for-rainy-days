@@ -897,8 +897,10 @@ def process_settings(message):
     msg = message.text
     bot.clear_step_handler(message)
     if msg == 'Reminders':
-        yesorno = "yalar" #extract from db
-        #TODO 
+        flag = dbhelper.wants_reminder(chat_id) 
+        yesorno = "OFF"
+        if flag:
+            yesorno = "ON"
         body = "You have currently set your reminders to: " + yesorno + ".😊 Do you want to receive our daily and monthly reminders?"
         bot.send_message(chat_id=chat_id, text=body, reply_markup=opt_button)
         bot.register_next_step_handler(message, process_opt)
@@ -1017,10 +1019,16 @@ def monthly():
                     monthly = chart()
                     spent_most = monthly.make_piechart(food, clothes, transport, necc, others)
                     default_msg += "\n🗓 Category with highest spendings: " + spent_most + succ_or_fail_msg
-                    bot.send_message(chat_id=i, text=default_msg)
-                    bot.send_photo(chat_id=i, photo=open('/Users/User/Downloads/Orbital/Versions/monthly.png' ,'rb'))  
+                    try:
+                        bot.send_message(chat_id=i, text=default_msg)
+                        bot.send_photo(chat_id=i, photo=open('/Users/User/Downloads/Orbital/Versions/monthly.png' ,'rb')) 
+                    except:
+                        continue
                 else:
-                    bot.send_message(chat_id=i, text=default_msg)
+                    try:
+                        bot.send_message(chat_id=i, text=default_msg)
+                    except:
+                        continue
     else:
         return
 
@@ -1060,7 +1068,10 @@ def send_daily():
     list_of_users = dbhelper.get_all_users()
     for i in list_of_users:
         if dbhelper.wants_reminder(i):
-            bot.send_message(chat_id= i, text="Reminder: Have you keyed in your expenditure (if any) for today? 🤔 \nTracking your expenses and savings consistently helps you manage your finances better!")
+            try:
+                bot.send_message(chat_id= i, text="Reminder: Have you keyed in your expenditure (if any) for today? 🤔 \nTracking your expenses and savings consistently helps you manage your finances better!")
+            except:
+                continue
 
 while True:
     schedule.every().day.at("21:00").do(send_daily) 
