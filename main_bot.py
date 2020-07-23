@@ -650,6 +650,18 @@ def process_uome(message):
     else:
         bot.send_message(chat_id=chat_id, text="Please note that our bot interacts with you mainly through the buttons.😅 Press /main to be redirected back to the main menu.",reply_markup=types.ReplyKeyboardRemove())
 
+#returns the buttons for names of debtees(1)/ debtors(2)
+def name_but(chat_id, int):
+    listofnames = dbhelper.get_all_debtee_names(chat_id) if int == 1 else dbhelper.get_all_debtor_names(chat_id)
+    if (len(listofnames)) == 0:
+        return exit_button
+    else:
+        name_button = types.ReplyKeyboardMarkup(resize_keyboard=True,row_width=1)
+        for name in listofnames:
+            name_button.add(types.KeyboardButton(name))
+        name_button.add(types.KeyboardButton('Back'))
+        return name_button
+
 def update_debtee(message):
     chat_id = message.from_user.id
     msg = message.text
@@ -660,8 +672,8 @@ def update_debtee(message):
         bot.send_message(chat_id=chat_id, text=body, reply_markup= exit_button)
         bot.register_next_step_handler(message, add_debtee)
     elif msg == 'Delete Debtee':
-        body = "Congratulations on paying back what you’ve owed!🥳 To delete a debtee, simply input the name of the debtee that is in your debtee list. \nE.g. If you have cleared your debts with Tan Ah Long, then simply key in Tan Ah Long."
-        bot.send_message(chat_id=chat_id, text= body, reply_markup= exit_button)
+        body = "Select the name of the debtee that you have paid back to.🥳 If you do not see any names, that means you do not have any debtees!"
+        bot.send_message(chat_id=chat_id, text=body, reply_markup=name_but(chat_id,1))
         bot.register_next_step_handler(message, delete_debtee)
     elif msg == 'Back':
         bot.send_message(chat_id=chat_id, text= "Sending you back...", reply_markup=iou_button)
@@ -704,14 +716,42 @@ def delete_debtee(message):
         bot.send_message(chat_id=chat_id, text="Sending you back...", reply_markup=debtee_button)
         bot.register_next_step_handler(message, update_debtee)
     else: 
-        if dbhelper.is_debtee_present_iou(chat_id, msg.upper()):
-            dbhelper.delete_debtee_iou(chat_id, msg.upper())
-            bot.send_message(chat_id=chat_id,text="You have removed " + msg + " from your debtee list. Good job!", reply_markup=debtee_button)
-            bot.register_next_step_handler(message, update_debtee)
+        if dbhelper.is_debtee_present_iou(chat_id, msg):
+            bot.send_message(chat_id=chat_id, text="Input the amount that you have paid back to " + msg + ". For example, if you have paid back $88.88, just input 88.88 🙂", reply_markup=exit_button)
+            bot.register_next_step_handler(message, debtee_pay)
         else:
-            body = "The name you've keyed in is not in our database. Please check if you have keyed in the name of your debtee correctly or check if the person is in your debtee list and input again."
-            bot.send_message(chat_id=chat_id,text=body)
-            bot.register_next_step_handler(message, delete_debtee)
+            bot.send_message(chat_id=chat_id, text="Please note that our bot interacts with you mainly through the buttons.😅 Press /main to be redirected back to the main menu.", reply_markup=types.ReplyKeyboardRemove())
+        #####old code below- delete once done okay nothing for you to do this chunk#####
+        #if dbhelper.is_debtee_present_iou(chat_id, msg.upper()):
+        #   dbhelper.delete_debtee_iou(chat_id, msg.upper())
+        #    bot.send_message(chat_id=chat_id,text="You have removed " + msg + " from your debtee list. Good job!", reply_markup=debtee_button)
+        #    bot.register_next_step_handler(message, update_debtee)
+        #else:
+        #    body = "The name you've keyed in is not in our database. Please check if you have keyed in the name of your debtee correctly or check if the person is in your debtee list and input again."
+        #    bot.send_message(chat_id=chat_id,text=body)
+        #    bot.register_next_step_handler(message, delete_debtee)
+
+def debtee_pay(message):
+    chat_id = message.from_user.id
+    msg = message.text
+    bot.send_chat_action(chat_id=chat_id, action="Typing")
+    bot.clear_step_handler(message)
+    if msg == 'Back':
+        bot.send_message(chat_id=chat_id, text="Select the name of the debtee that you have paid back to.🥳 If you do not see any names, that means you do not have any debtees!", reply_markup=name_but(chat_id,1))
+        bot.register_next_step_handler(message, delete_debtee)
+    elif (is_float(msg)):
+        #TODO
+        #go to database and calculate the amount left being owed
+        #if amount paid back >= amount owed, simply remove from db
+        #idk how whether you want process here or in db up to you
+        body = "Congratulations on paying back what you’ve owed!🥳"
+        #add to the body either "You still owe xxx $yyy." or "You have cleared your debts with xxx!"
+        #reconstruct the updated buttons
+        bot.send_message(chat_id=chat_id, text=body, reply_markup=name_but(chat_id,1))
+        bot.register_next_step_handler(message, delete_debtee)
+    else:
+        bot.send_message(chat_id=chat_id,text="Input the value properly leh.🙂")
+        bot.register_next_step_handler(message, debtee_pay)
 
 def update_debtor(message):
     chat_id = message.from_user.id
