@@ -763,8 +763,8 @@ def update_debtor(message):
         bot.send_message(chat_id=chat_id, text=body, reply_markup=exit_button)
         bot.register_next_step_handler(message, add_debtor)
     elif msg == 'Delete Debtor':
-        body = "Congratulations on receiving back your money!🥳 To delete a debtor, simply input the name of the debtor that is in your debtor list. \nE.g. If Tan Ah Beng paid you back, then simply key in Tan Ah Beng."
-        bot.send_message(chat_id=chat_id, text=body, reply_markup=exit_button)
+        body = "Select the name of the debtor who has paid you back.🥳 If you do not see any names, that means you do not have any debtors!"
+        bot.send_message(chat_id=chat_id, text=body, reply_markup=name_but(chat_id,2))
         bot.register_next_step_handler(message, delete_debtor)
     elif msg == 'Back':
         bot.send_message(chat_id=chat_id, text= "Sending you back...", reply_markup=uome_button)
@@ -806,14 +806,41 @@ def delete_debtor(message):
         bot.send_message(chat_id=chat_id, text="Sending you back...", reply_markup=debtor_button)
         bot.register_next_step_handler(message, update_debtor)
     else: 
-        if dbhelper.is_debtor_present_uome(chat_id, msg.upper()):
-            dbhelper.delete_debtor_uome(chat_id, msg.upper())
-            bot.send_message(chat_id=chat_id,text="You have removed " + msg + " from your debtor list. Good job!", reply_markup=debtor_button)
-            bot.register_next_step_handler(message, update_debtor)
+        if dbhelper.is_debtor_present_uome(chat_id, msg):
+            bot.send_message(chat_id=chat_id,text="Input the amount that you have received from " + msg + ". If your debtor paid you back $88.88, just input 88.88 🙂", reply_markup=exit_button)
+            bot.register_next_step_handler(message, debtor_pay)
         else:
-            body = "The name you've keyed in is not in our database. Please check if you have keyed in the name of your debtor correctly or check if the person is in your debtor list and input again."
-            bot.send_message(chat_id=chat_id,text=body)
-            bot.register_next_step_handler(message, delete_debtor)
+            bot.send_message(chat_id=chat_id, text="Please note that our bot interacts with you mainly through the buttons.😅 Press /main to be redirected back to the main menu.", reply_markup=types.ReplyKeyboardRemove())
+        ###old code below- delete once done okay nothing for you to do this chunk#####
+        #if dbhelper.is_debtor_present_uome(chat_id, msg):
+        #    dbhelper.delete_debtor_uome(chat_id, msg.upper())
+        #    bot.send_message(chat_id=chat_id,text="You have removed " + msg + " from your debtor list. Good job!", reply_markup=debtor_button)
+        #    bot.register_next_step_handler(message, update_debtor)
+        #else:
+        #    body = "The name you've keyed in is not in our database. Please check if you have keyed in the name of your debtor correctly or check if the person is in your debtor list and input again."
+        #    bot.send_message(chat_id=chat_id,text=body)
+        #    bot.register_next_step_handler(message, delete_debtor)
+
+def debtor_pay(message):
+    chat_id = message.from_user.id
+    msg = message.text
+    bot.send_chat_action(chat_id=chat_id, action="Typing")
+    bot.clear_step_handler(message)
+    if msg == 'Back':
+        bot.send_message(chat_id=chat_id, text="Select the name of the debtor who has paid you back.🥳 If you do not see any names, that means you do not have any debtors!", reply_markup=name_but(chat_id,2))
+        bot.register_next_step_handler(message, delete_debtor)
+    elif (is_float(msg)):
+        #TODO
+        #go to database and calculate the amount left owed to user
+        #if amount received >= amount owed, simply remove from db
+        #idk how whether you want process here or in db up to you
+        body = "Congratulations on receiving back your money!🥳"
+        #add to the body either "xxx still owes you $yyy." or "You have received all your money back from xxx"
+        bot.send_message(chat_id=chat_id, text=body, reply_markup=name_but(chat_id,2))
+        bot.register_next_step_handler(message, delete_debtor)
+    else:
+        bot.send_message(chat_id=chat_id,text="Input the value properly leh.🙂")
+        bot.register_next_step_handler(message, debtor_pay)
 
 def extract_contact(message):
     chat_id = message.from_user.id
