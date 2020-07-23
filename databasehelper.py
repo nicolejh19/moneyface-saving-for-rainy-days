@@ -524,7 +524,7 @@ class DBHelper:
             records = dbcursor.fetchall()
             res = []
             for row in records:
-                res.append(row)
+                res.append(row[0])
             return res
         except sqlite3.DatabaseError:
             return []
@@ -605,7 +605,7 @@ class DBHelper:
             records = dbcursor.fetchall()
             res = []
             for row in records:
-                res.append(row)
+                res.append(row[0])
             return res
         except sqlite3.DatabaseError:
             return []
