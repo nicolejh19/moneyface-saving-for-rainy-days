@@ -19,8 +19,8 @@ class DBHelper:
         dbcursor.execute('''CREATE TABLE IF NOT EXISTS monthly_exp (year_month TEXT NOT NULL, user_id INTEGER NOT NULL, amount TEXT NOT NULL, within_budget INTEGER NOT NULL, food TEXT NOT NULL, clothes TEXT NOT NULL, transport TEXT NOT NULL, nec TEXT NOT NULL, others TEXT NOT NULL, PRIMARY KEY(year_month, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id), FOREIGN KEY(year_month, user_id) REFERENCES monthly_budget(year_month, user_id))''')
        dbcursor.execute('''CREATE TABLE IF NOT EXISTS monthly_savings (date_time DATE NOT NULL, year_month TEXT NOT NULL, user_id INTEGER NOT NULL, amount TEXT NOT NULL, type_savings TEXT NOT NULL, PRIMARY KEY(date_time, user_id), FOREIGN KEY(user_id) REFERENCES users(user_id))''')
         dbcursor.execute('''CREATE TABLE IF NOT EXISTS challenges (year_month TEXT NOT NULL, user_id_challenger INTEGER NOT NULL, user_id_challenged INTEGER NOT NULL, amount TEXT NOT NULL, PRIMARY KEY(year_month, user_id_challenger, user_id_challenged), FOREIGN KEY(user_id_challenged) REFERENCES users(user_id), FOREIGN KEY(year_month, user_id_challenged) REFERENCES monthly_exp(year_month, user_id))''')
-        dbcursor.execute('''CREATE TABLE IF NOT EXISTS iou (user_id_debtor INTEGER NOT NULL, name_debtee TEXT NOT NULL, amount TEXT NOT NULL, PRIMARY KEY(user_id_debtor, name_debtee), FOREIGN KEY(user_id_debtor) REFERENCES users(user_id))''')
-        dbcursor.execute('''CREATE TABLE IF NOT EXISTS uome (user_id_debtee INTEGER NOT NULL, name_debtor TEXT NOT NULL, amount TEXT NOT NULL, PRIMARY KEY(user_id_debtee, name_debtor), FOREIGN KEY(user_id_debtee) REFERENCES users(user_id))''')                                                                
+        dbcursor.execute('''CREATE TABLE IF NOT EXISTS iou (user_id_debtor INTEGER NOT NULL, name_debtee TEXT NOT NULL, amount TEXT NOT NULL, need_update TEXT DEFAULT "NO" NOT NULL, PRIMARY KEY(user_id_debtor, name_debtee), FOREIGN KEY(user_id_debtor) REFERENCES users(user_id))''')
+        dbcursor.execute('''CREATE TABLE IF NOT EXISTS uome (user_id_debtee INTEGER NOT NULL, name_debtor TEXT NOT NULL, amount TEXT NOT NULL, need_update TEXT DEFAULT "NO" NOT NULL, PRIMARY KEY(user_id_debtee, name_debtor), FOREIGN KEY(user_id_debtee) REFERENCES users(user_id))''')                                                                
         db.commit()
         dbcursor.close()
 
@@ -567,16 +567,68 @@ class DBHelper:
             args = (user_id_debtor, name_debtee, amt)
         dbcursor.execute(stmt, args)
         db.commit()
-        dbcursor.close() 
-            
-    def delete_debtee_iou(self, user_id_debtor, name_debtee):
+        dbcursor.close()
+
+    def get_debtee_name_iou(self, user_id_debtor):
         db = sqlite3.connect(self.dbname)
         dbcursor = db.cursor()
-        stmt = '''DELETE FROM iou WHERE user_id_debtor = ? AND name_debtee = ?'''
-        args = (user_id_debtor, name_debtee, )
+        stmt = '''SELECT name_debtee FROM iou WHERE user_id_debtor = ? AND need_update = ?'''
+        args = (user_id_debtor, "YES", )
+        dbcursor.execute(stmt, args)
+        record = dbcursor.fetchone()
+        dbcursor.close()
+        return record[0]
+    
+    def delete_debtee_iou(self, user_id_debtor):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''DELETE FROM iou WHERE user_id_debtor = ? AND need_update = ?'''
+        args = (user_id_debtor, "YES", )
         dbcursor.execute(stmt, args)
         db.commit()
         dbcursor.close()
+        
+    def set_debtee_update_on_iou(self, user_id_debtor, name_debtee):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''UPDATE iou SET need_update = ? WHERE user_id_debtor = ? AND name_debtee = ?'''
+        args = ("YES", user_id_debtor, name_debtee, )
+        dbcursor.execute(stmt, args)
+        db.commit()
+        dbcursor.close() 
+    
+    def set_debtee_update_off_iou(self, user_id_debtor):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''UPDATE iou SET need_update = ? WHERE user_id_debtor = ? AND need_update = ?'''
+        args = ("NO", user_id_debtor, "YES", )
+        dbcursor.execute(stmt, args)
+        db.commit()
+        dbcursor.close() 
+        
+    def get_debtee_amount_update(self, user_id_debtor):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT amount FROM iou WHERE user_id_debtor = ? AND need_update = ?'''
+        args = (user_id_debtor, "YES", )
+        dbcursor.execute(stmt, args)
+        record = dbcursor.fetchone()
+        dbcursor.close()
+        return record[0]
+    
+    def update_debtee_iou(self, user_id_debtor, amt):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        new_amt = Decimal(self.get_debtee_amount_update(user_id_debtor)) - Decimal(amt)
+        flag = False
+        if new_amt <= Decimal(0):
+            flag = True
+        stmt = '''UPDATE iou SET amount = ? WHERE user_id_debtor = ? AND need_update = ?'''
+        args = (str(new_amt.quantize(Decimal('1.00'))), user_id_debtor, "YES", )
+        dbcursor.execute(stmt, args)
+        db.commit()
+        dbcursor.close() 
+        return flag
 
     def get_all_debtors(self, user_id):
         db = sqlite3.connect(self.dbname)
@@ -650,14 +702,66 @@ class DBHelper:
         db.commit()
         dbcursor.close()
         
-    def delete_debtor_uome(self, user_id_debtee, name_debtor):
+    def get_debtor_name_uome(self, user_id_debtee):
         db = sqlite3.connect(self.dbname)
         dbcursor = db.cursor()
-        stmt = '''DELETE FROM uome WHERE user_id_debtee = ? AND name_debtor = ?'''
-        args = (user_id_debtee, name_debtor, )
+        stmt = '''SELECT name_debtor FROM uome WHERE user_id_debtee = ? AND need_update = ?'''
+        args = (user_id_debtee, "YES", )
+        dbcursor.execute(stmt, args)
+        record = dbcursor.fetchone()
+        dbcursor.close()
+        return record[0]
+    
+    def delete_debtor_uome(self, user_id_debtee):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''DELETE FROM uome WHERE user_id_debtee = ? AND need_update = ?'''
+        args = (user_id_debtee, "YES", )
         dbcursor.execute(stmt, args)
         db.commit()
         dbcursor.close()
+        
+    def set_debtor_update_on_uome(self, user_id_debtee, name_debtor):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''UPDATE uome SET need_update = ? WHERE user_id_debtee = ? AND name_debtor = ?'''
+        args = ("YES", user_id_debtee, name_debtor, )
+        dbcursor.execute(stmt, args)
+        db.commit()
+        dbcursor.close() 
+
+    def set_debtor_update_off_uome(self, user_id_debtee):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''UPDATE uome SET need_update = ? WHERE user_id_debtee = ? AND need_update = ?'''
+        args = ("NO", user_id_debtee, "YES", )
+        dbcursor.execute(stmt, args)
+        db.commit()
+        dbcursor.close()
+        
+    def get_debtor_amount_update(self, user_id_debtee):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        stmt = '''SELECT amount FROM uome WHERE user_id_debtee = ? AND need_update = ?'''
+        args = (user_id_debtee, "YES", )
+        dbcursor.execute(stmt, args)
+        record = dbcursor.fetchone()
+        dbcursor.close()
+        return record[0]
+    
+    def update_debtor_uome(self, user_id_debtee, amt):
+        db = sqlite3.connect(self.dbname)
+        dbcursor = db.cursor()
+        new_amt = Decimal(self.get_debtor_amount_update(user_id_debtee)) - Decimal(amt)
+        flag = False
+        if new_amt <= Decimal(0):
+            flag = True
+        stmt = '''UPDATE uome SET amount = ? WHERE user_id_debtee = ? AND need_update = ?'''
+        args = (str(new_amt.quantize(Decimal('1.00'))), user_id_debtee, "YES", )
+        dbcursor.execute(stmt, args)
+        db.commit()
+        dbcursor.close() 
+        return flag
 
     ## USE FOR TESTING ONLY
     def test_all_users(self):
