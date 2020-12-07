@@ -1,0 +1,45 @@
+h1 {
+    font-family:'Courier New', Courier, monospace;
+    color: mediumslateblue;
+    text-align: center;
+    font-size: 40px;
+}
+h2 {
+    font-family:'Courier New', Courier, monospace;
+    color: lightskyblue;
+    text-align: center;
+    font-size: 32px;
+}
+h3 {
+    font-family:'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    color: lightpink;
+    text-align: center;
+    font-size: 25px;
+}
+p {
+    font-family:'Calibri', 'Times New Roman', Times, serif;
+    text-align: center;
+    line-height: 2.5 ;
+}
+ul {
+    font-family: 'Courier New', Courier, monospace;
+    text-align: center;
+    list-style-type: none;
+    font-size: 25px;
+}
+body {
+    background-color:cornsilk;
+}
+
+div {
+    text-align: center;
+    width:100%
+}
+
+.poll {
+    text-align: center;
+    display: inline-block;
+    font-size: 25px;
+    cursor: pointer;
+    margin: auto;
+}
